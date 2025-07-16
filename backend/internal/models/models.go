@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type User struct {
@@ -71,7 +69,7 @@ type BoardSettings struct {
 	DefaultMemberRole            string `json:"default_member_role" gorm:"default:'member'"`
 
 	// Relationships
-	Board Board `json:"board" gorm:"foreignKey:BoardID"`
+	Board *Board `json:"-" gorm:"foreignKey:BoardID"`
 }
 
 type Task struct {
