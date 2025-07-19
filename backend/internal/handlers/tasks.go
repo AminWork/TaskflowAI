@@ -21,7 +21,7 @@ func NewTaskHandler(hub *websocket.Hub) *TaskHandler {
 }
 
 func (h *TaskHandler) CreateTask(c *gin.Context) {
-	boardID, err := strconv.ParseUint(c.Param("boardId"), 10, 32)
+	boardID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid board ID"})
 		return
@@ -87,7 +87,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 }
 
 func (h *TaskHandler) GetTasks(c *gin.Context) {
-	boardID, err := strconv.ParseUint(c.Param("boardId"), 10, 32)
+	boardID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid board ID"})
 		return

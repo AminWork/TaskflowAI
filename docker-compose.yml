@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  # PostgreSQL database service
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kanban
+      POSTGRES_PASSWORD: kanban
+      POSTGRES_DB: kanban_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - kanban_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Go backend service
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      JWT_SECRET: "supersecret-change-me"
+      DB_DSN: "postgres://kanban:kanban@db:5432/kanban_db?sslmode=disable"
+      CORS_ORIGINS: "http://localhost:3001"
+    ports:
+      - "8080:8080"
+    networks:
+      - kanban_net
+
+  # React + Vite frontend service (served by Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3001:80"
+    networks:
+      - kanban_net
+
+volumes:
+  pgdata:
+
+networks:
+  kanban_net:
+    driver: bridge

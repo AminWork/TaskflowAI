@@ -1,29 +1,36 @@
-FROM golang:1.21-alpine AS builder
+# ---------- Builder stage ----------
+FROM golang:1.21-bookworm AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Install build deps for CGO + SQLite
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libc6-dev libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cache dependencies
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
+# Copy source
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go
+# Build the binary (CGO enabled for SQLite/Postgres drivers)
+RUN CGO_ENABLED=1 GOOS=linux go build -o main cmd/server/main.go
 
-# Final stage
-FROM alpine:latest
+# ---------- Runtime stage ----------
+FROM debian:bookworm-slim AS runtime
 
-RUN apk --no-cache add ca-certificates sqlite
+# Install runtime libs
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /root/
 
-# Copy the binary from builder
+# Copy binary and example env
 COPY --from=builder /app/main .
 COPY --from=builder /app/.env.example .env
 
-# Expose port
 EXPOSE 8080
-
-# Run the application
 CMD ["./main"]

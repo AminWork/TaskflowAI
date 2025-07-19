@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"kanban-backend/internal/database"
 	"kanban-backend/internal/handlers"
@@ -79,7 +80,7 @@ func main() {
 			}
 
 			// Task routes
-			tasks := protected.Group("/boards/:boardId/tasks")
+			tasks := protected.Group("/boards/:id/tasks")
 			{
 				tasks.POST("", taskHandler.CreateTask)
 				tasks.GET("", taskHandler.GetTasks)
@@ -94,8 +95,8 @@ func main() {
 			}
 
 			// WebSocket route
-			protected.GET("/ws/:boardId", func(c *gin.Context) {
-				boardID, err := strconv.ParseUint(c.Param("boardId"), 10, 32)
+			protected.GET("/ws/:id", func(c *gin.Context) {
+				boardID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 				if err != nil {
 					c.JSON(400, gin.H{"error": "Invalid board ID"})
 					return
