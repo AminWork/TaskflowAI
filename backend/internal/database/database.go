@@ -1,15 +1,15 @@
 package database
 
 import (
-	"log"
 	"os"
 
 	"kanban-backend/internal/models"
+	"kanban-backend/internal/logger"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -25,7 +25,7 @@ func InitDatabase() {
 	if dsn != "" {
 		// Use PostgreSQL
 		DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
+			Logger: loggerzap(),
 		})
 	} else {
 		// Default to SQLite (development / lightweight)
@@ -35,12 +35,12 @@ func InitDatabase() {
 		}
 
 		DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
+			Logger: loggerzap(),
 		})
 	}
 
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		logger.Log.Fatalf("Failed to connect to database: %v", err)
 	}
 
 	// Auto-migrate the schema
@@ -56,10 +56,14 @@ func InitDatabase() {
 		&models.ChatMessage{},
 	)
 	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
+		logger.Log.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	log.Println("Database connected and migrated successfully")
+	logger.Log.Info("Database connected and migrated successfully")
+}
+
+func loggerzap() gormlogger.Interface {
+	return gormlogger.Default.LogMode(gormlogger.Info)
 }
 
 func GetDB() *gorm.DB {

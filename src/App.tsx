@@ -23,7 +23,7 @@ const columns: Column[] = [
 ];
 
 function App() {
-  const { user, isLoading, login, register, logout, isAuthenticated } = useAuth();
+  const { user, token, isLoading, login, register, logout, isAuthenticated } = useAuth();
   const {
     boards,
     currentBoard,
@@ -37,7 +37,7 @@ function App() {
     updateMemberRole,
     hasPermission,
     deleteBoard,
-  } = useBoards(user);
+  } = useBoards(user, token);
   
   const [tasks, setTasks] = useLocalStorage<Task[]>(`kanban-tasks-${currentBoard?.id || 'default'}`, []);
   const [currentView, setCurrentView] = useState<'kanban' | 'analytics' | 'members'>('kanban');
@@ -168,9 +168,11 @@ function App() {
     handleSaveTask(taskData);
   };
 
-  const handleCreateBoard = (title: string, description?: string) => {
-    createBoard(title, description);
-    setIsBoardFormOpen(false);
+  const handleCreateBoard = async (title: string, description?: string) => {
+    const newBoard = await createBoard(title, description);
+    if (newBoard) {
+      setIsBoardFormOpen(false);
+    }
   };
 
   const handleViewChange = (view: 'kanban' | 'analytics' | 'members') => {

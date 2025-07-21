@@ -1,245 +1,237 @@
 import { useState, useEffect } from 'react';
-import { KanbanBoard, BoardMember, BoardInvitation, User, Permission } from '../types';
+import { KanbanBoard, BoardInvitation, User, Permission } from '../types';
+import { normalizeBoard } from '../utils/normalize';
 import { useLocalStorage } from './useLocalStorage';
 
-export function useBoards(currentUser: User | null) {
-  const [boards, setBoards] = useLocalStorage<KanbanBoard[]>('kanban-boards', []);
-  const [invitations, setInvitations] = useLocalStorage<BoardInvitation[]>('board-invitations', []);
+export function useBoards(currentUser: User | null, token: string | null) {
+  const [boards, setBoards] = useState<KanbanBoard[]>([]);
+  const [invitations, setInvitations] = useState<BoardInvitation[]>([]);
   const [currentBoard, setCurrentBoard] = useState<KanbanBoard | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Get boards where user is a member
-  const userBoards = boards.filter(board => 
-    board.members.some(member => member.userId === currentUser?.id)
-  );
+  // Fetch boards from API
+  const fetchBoards = async () => {
+    if (!token) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/boards', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-  // Get pending invitations for current user
-  const userInvitations = invitations.filter(inv => 
-    inv.invitedEmail === currentUser?.email && inv.status === 'pending'
-  );
-
-  const createBoard = (title: string, description?: string): KanbanBoard => {
-    if (!currentUser) throw new Error('User must be logged in');
-
-    const defaultPermissions: Permission[] = [
-      { action: 'create_task', granted: true },
-      { action: 'edit_task', granted: true },
-      { action: 'delete_task', granted: true },
-      { action: 'move_task', granted: true },
-      { action: 'invite_users', granted: true },
-      { action: 'manage_board', granted: true },
-    ];
-
-    const newBoard: KanbanBoard = {
-      id: Date.now().toString(),
-      title,
-      description,
-      createdBy: currentUser.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isPublic: false,
-      members: [{
-        userId: currentUser.id,
-        email: currentUser.email,
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-        role: 'owner',
-        joinedAt: new Date(),
-        permissions: defaultPermissions,
-      }],
-      settings: {
-        allowGuestAccess: false,
-        requireApprovalForNewMembers: false,
-        defaultMemberRole: 'member',
-      },
-    };
-
-    setBoards(prev => [...prev, newBoard]);
-    setCurrentBoard(newBoard);
-    return newBoard;
+      if (response.ok) {
+        const data = await response.json();
+        setBoards(data.map((b: any) => normalizeBoard(b)));
+      }
+    } catch (error) {
+      console.error('Failed to fetch boards:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const inviteUser = (boardId: string, email: string, role: 'admin' | 'member' | 'viewer') => {
-    if (!currentUser) return;
+  // Fetch invitations from API
+  const fetchInvitations = async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch('/api/invitations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    const board = boards.find(b => b.id === boardId);
-    if (!board) return;
-
-    // Check if user has permission to invite
-    const currentMember = board.members.find(m => m.userId === currentUser.id);
-    if (!currentMember?.permissions.find(p => p.action === 'invite_users')?.granted) {
-      throw new Error('You do not have permission to invite users');
+      if (response.ok) {
+        const data = await response.json();
+        setInvitations(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch invitations:', error);
     }
-
-    // Check if user is already a member
-    if (board.members.some(m => m.email === email)) {
-      throw new Error('User is already a member of this board');
-    }
-
-    // Check if invitation already exists
-    if (invitations.some(inv => inv.boardId === boardId && inv.invitedEmail === email && inv.status === 'pending')) {
-      throw new Error('Invitation already sent to this user');
-    }
-
-    const invitation: BoardInvitation = {
-      id: Date.now().toString(),
-      boardId,
-      boardTitle: board.title,
-      invitedBy: currentUser.id,
-      invitedByName: currentUser.name,
-      invitedEmail: email,
-      role,
-      status: 'pending',
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    };
-
-    setInvitations(prev => [...prev, invitation]);
   };
 
-  const acceptInvitation = (invitationId: string) => {
-    if (!currentUser) return;
+  // Load data on mount and when token changes
+  useEffect(() => {
+    // reset boards when user or token changes
+    setBoards([]);
+    setInvitations([]);
+    setCurrentBoard(null);
+    if (token) {
+      fetchBoards();
+      fetchInvitations();
+    }
+  }, [token, currentUser]);
 
-    const invitation = invitations.find(inv => inv.id === invitationId);
-    if (!invitation || invitation.status !== 'pending') return;
+  const createBoard = async (title: string, description?: string): Promise<KanbanBoard | null> => {
+    if (!currentUser || !token) return null;
 
-    // Add user to board
-    const board = boards.find(b => b.id === invitation.boardId);
-    if (!board) return;
+    try {
+      const response = await fetch('/api/boards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, description }),
+      });
 
-    const memberPermissions: Permission[] = [
-      { action: 'create_task', granted: true },
-      { action: 'edit_task', granted: true },
-      { action: 'delete_task', granted: invitation.role !== 'viewer' },
-      { action: 'move_task', granted: true },
-      { action: 'invite_users', granted: invitation.role === 'admin' },
-      { action: 'manage_board', granted: invitation.role === 'admin' },
-    ];
-
-    const newMember: BoardMember = {
-      userId: currentUser.id,
-      email: currentUser.email,
-      name: currentUser.name,
-      avatar: currentUser.avatar,
-      role: invitation.role,
-      joinedAt: new Date(),
-      permissions: memberPermissions,
-    };
-
-    setBoards(prev => prev.map(b => 
-      b.id === invitation.boardId 
-        ? { ...b, members: [...b.members, newMember], updatedAt: new Date() }
-        : b
-    ));
-
-    // Update invitation status
-    setInvitations(prev => prev.map(inv => 
-      inv.id === invitationId 
-        ? { ...inv, status: 'accepted' as const }
-        : inv
-    ));
+      if (response.ok) {
+        const newBoardApi = await response.json();
+        const newBoard = normalizeBoard(newBoardApi);
+        setBoards(prev => [...prev, newBoard]);
+        setCurrentBoard(newBoard);
+        return newBoard;
+      }
+    } catch (error) {
+      console.error('Failed to create board:', error);
+    }
+    return null;
   };
 
-  const declineInvitation = (invitationId: string) => {
-    setInvitations(prev => prev.map(inv => 
-      inv.id === invitationId 
-        ? { ...inv, status: 'declined' as const }
-        : inv
-    ));
+  const inviteUser = async (boardId: number, email: string, role: 'admin' | 'member' | 'viewer') => {
+    if (!currentUser || !token) return;
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email, role }),
+      });
+
+      if (response.ok) {
+        // Refresh invitations
+        fetchInvitations();
+      }
+    } catch (error) {
+      console.error('Failed to invite user:', error);
+    }
   };
 
-  const removeMember = (boardId: string, userId: string) => {
-    if (!currentUser) return;
+  const acceptInvitation = async (invitationId: number) => {
+    if (!currentUser || !token) return;
 
-    const board = boards.find(b => b.id === boardId);
-    if (!board) return;
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}/accept`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    // Check permissions
-    const currentMember = board.members.find(m => m.userId === currentUser.id);
-    if (!currentMember?.permissions.find(p => p.action === 'manage_board')?.granted) {
-      throw new Error('You do not have permission to remove members');
+      if (response.ok) {
+        // Refresh boards and invitations
+        fetchBoards();
+        fetchInvitations();
+      }
+    } catch (error) {
+      console.error('Failed to accept invitation:', error);
     }
-
-    // Cannot remove owner
-    const memberToRemove = board.members.find(m => m.userId === userId);
-    if (memberToRemove?.role === 'owner') {
-      throw new Error('Cannot remove board owner');
-    }
-
-    setBoards(prev => prev.map(b => 
-      b.id === boardId 
-        ? { ...b, members: b.members.filter(m => m.userId !== userId), updatedAt: new Date() }
-        : b
-    ));
   };
 
-  const updateMemberRole = (boardId: string, userId: string, newRole: 'admin' | 'member' | 'viewer') => {
-    if (!currentUser) return;
+  const declineInvitation = async (invitationId: number) => {
+    if (!currentUser || !token) return;
 
-    const board = boards.find(b => b.id === boardId);
-    if (!board) return;
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}/decline`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    // Check permissions
-    const currentMember = board.members.find(m => m.userId === currentUser.id);
-    if (!currentMember?.permissions.find(p => p.action === 'manage_board')?.granted) {
-      throw new Error('You do not have permission to update member roles');
+      if (response.ok) {
+        // Refresh invitations
+        fetchInvitations();
+      }
+    } catch (error) {
+      console.error('Failed to decline invitation:', error);
     }
+  };
 
-    const memberPermissions: Permission[] = [
-      { action: 'create_task', granted: true },
-      { action: 'edit_task', granted: true },
-      { action: 'delete_task', granted: newRole !== 'viewer' },
-      { action: 'move_task', granted: true },
-      { action: 'invite_users', granted: newRole === 'admin' },
-      { action: 'manage_board', granted: newRole === 'admin' },
-    ];
+  const removeMember = async (boardId: string, userId: string) => {
+    if (!currentUser || !token) return;
 
-    setBoards(prev => prev.map(b => 
-      b.id === boardId 
-        ? {
-            ...b,
-            members: b.members.map(m => 
-              m.userId === userId 
-                ? { ...m, role: newRole, permissions: memberPermissions }
-                : m
-            ),
-            updatedAt: new Date()
-          }
-        : b
-    ));
+    try {
+      const response = await fetch(`/api/boards/${boardId}/members/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Refresh boards
+        fetchBoards();
+      }
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+    }
+  };
+
+  const updateMemberRole = async (boardId: string, userId: string, newRole: 'admin' | 'member' | 'viewer') => {
+    if (!currentUser || !token) return;
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}/members/${userId}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (response.ok) {
+        // Refresh boards
+        fetchBoards();
+      }
+    } catch (error) {
+      console.error('Failed to update member role:', error);
+    }
   };
 
   const hasPermission = (boardId: string, action: Permission['action']): boolean => {
-    if (!currentUser) return false;
-
     const board = boards.find(b => b.id === boardId);
-    if (!board) return false;
+    if (!board || !currentUser) return false;
 
     const member = board.members.find(m => m.userId === currentUser.id);
     if (!member) return false;
 
-    return member.permissions.find(p => p.action === action)?.granted || false;
+    return member.permissions.some(p => p.action === action && p.granted);
   };
 
-  const deleteBoard = (boardId: string) => {
-    if (!currentUser) return;
+  const deleteBoard = async (boardId: string) => {
+    if (!currentUser || !token) return;
 
-    const board = boards.find(b => b.id === boardId);
-    if (!board || board.createdBy !== currentUser.id) {
-      throw new Error('Only board owner can delete the board');
-    }
+    try {
+      const response = await fetch(`/api/boards/${boardId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    setBoards(prev => prev.filter(b => b.id !== boardId));
-    setInvitations(prev => prev.filter(inv => inv.boardId !== boardId));
-    
-    if (currentBoard?.id === boardId) {
-      setCurrentBoard(userBoards.length > 1 ? userBoards[0] : null);
+      if (response.ok) {
+        setBoards(prev => prev.filter(b => b.id !== boardId));
+        if (currentBoard?.id === boardId) {
+          setCurrentBoard(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete board:', error);
     }
   };
 
   return {
-    boards: userBoards,
+    boards,
+    invitations,
     currentBoard,
-    invitations: userInvitations,
+    isLoading,
     setCurrentBoard,
     createBoard,
     inviteUser,

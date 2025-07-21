@@ -1,12 +1,12 @@
 package main
 
 import (
-	"log"
 	"os"
 	"strconv"
 
 	"kanban-backend/internal/database"
 	"kanban-backend/internal/handlers"
+	"kanban-backend/internal/logger"
 	"kanban-backend/internal/middleware"
 	"kanban-backend/internal/websocket"
 
@@ -15,9 +15,13 @@ import (
 )
 
 func main() {
+	// Initialize structured logger
+	logger.Init()
+	defer logger.Sync()
+
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
+		logger.Log.Info("No .env file found")
 	}
 
 	// Initialize database
@@ -113,8 +117,8 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s", port)
+	logger.Log.Infof("Server starting on port %s", port)
 	if err := router.Run(":" + port); err != nil {
-		log.Fatal("Failed to start server:", err)
+		logger.Log.Fatal("Failed to start server", err)
 	}
 }

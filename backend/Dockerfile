@@ -1,6 +1,8 @@
 # ---------- Builder stage ----------
 FROM golang:1.21-bookworm AS builder
 
+ENV GOPROXY=https://proxy.golang.org,direct
+
 WORKDIR /app
 
 # Install build deps for CGO + SQLite

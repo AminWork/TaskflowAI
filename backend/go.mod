@@ -8,6 +8,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/joho/godotenv v1.4.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.31.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.5.4
@@ -39,6 +40,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
