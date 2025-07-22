@@ -64,6 +64,6 @@ export function normalizeTask(apiTask: any): Task {
     tags: apiTask.tags || [],
     estimatedHours: apiTask.estimated_hours,
     actualHours: apiTask.actual_hours,
-    assignee: apiTask.assignee_id?.toString(),
+    assignee: apiTask.assignee_id ? apiTask.assignee_id.toString() : undefined,
   };
 } 

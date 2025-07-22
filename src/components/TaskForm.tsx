@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Task } from '../types';
-import { X, Save, Tag, Flag, FileText } from 'lucide-react';
+import { Task, BoardMember } from '../types';
+import { X, Save, Tag, Flag, FileText, User, Clock } from 'lucide-react';
+import { AssigneeSelector } from './AssigneeSelector';
 
 interface TaskFormProps {
   task?: Task;
@@ -8,9 +9,10 @@ interface TaskFormProps {
   onClose: () => void;
   onSave: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
   defaultStatus?: Task['status'];
+  boardMembers?: BoardMember[];
 }
 
-export function TaskForm({ task, isOpen, onClose, onSave, defaultStatus = 'todo' }: TaskFormProps) {
+export function TaskForm({ task, isOpen, onClose, onSave, defaultStatus = 'todo', boardMembers = [] }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('medium');
@@ -18,6 +20,8 @@ export function TaskForm({ task, isOpen, onClose, onSave, defaultStatus = 'todo'
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [status, setStatus] = useState<Task['status']>(defaultStatus);
+  const [assignee, setAssignee] = useState<string | undefined>();
+  const [estimatedHours, setEstimatedHours] = useState<number | undefined>();
 
   useEffect(() => {
     if (task) {
@@ -27,6 +31,8 @@ export function TaskForm({ task, isOpen, onClose, onSave, defaultStatus = 'todo'
       setCategory(task.category);
       setTags(task.tags);
       setStatus(task.status);
+      setAssignee(task.assignee);
+      setEstimatedHours(task.estimatedHours);
     } else {
       setTitle('');
       setDescription('');
@@ -35,6 +41,8 @@ export function TaskForm({ task, isOpen, onClose, onSave, defaultStatus = 'todo'
       setTags([]);
       setTagInput('');
       setStatus(defaultStatus);
+      setAssignee(undefined);
+      setEstimatedHours(undefined);
     }
   }, [task, defaultStatus]);
 
@@ -49,6 +57,8 @@ export function TaskForm({ task, isOpen, onClose, onSave, defaultStatus = 'todo'
       category: category.trim(),
       tags,
       status,
+      assignee,
+      estimatedHours,
     });
 
     onClose();
@@ -146,16 +156,48 @@ export function TaskForm({ task, isOpen, onClose, onSave, defaultStatus = 'todo'
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <input
+                  type="text"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="e.g., Work, Personal, Project..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock size={14} className="inline mr-1" />
+                  Estimated Hours
+                </label>
+                <input
+                  type="number"
+                  value={estimatedHours || ''}
+                  onChange={(e) => setEstimatedHours(e.target.value ? Number(e.target.value) : undefined)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="0"
+                  min="0"
+                  step="0.5"
+                />
+              </div>
+            </div>
+
+            {/* Assignee Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
+                <User size={14} className="inline mr-1" />
+                Assign to
               </label>
-              <input
-                type="text"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="e.g., Work, Personal, Project..."
+              <AssigneeSelector
+                members={boardMembers}
+                selectedAssignee={assignee}
+                onAssigneeChange={setAssignee}
+                placeholder="Select team member..."
               />
             </div>
 

@@ -64,6 +64,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<Task['priority'] | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [assigneeFilter, setAssigneeFilter] = useState('');
 
   // Analytics
   const analytics = useAnalytics(tasks);
@@ -86,8 +87,11 @@ function App() {
     
     const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
     const matchesCategory = !categoryFilter || task.category === categoryFilter;
+    const matchesAssignee = !assigneeFilter || 
+                           (assigneeFilter === 'unassigned' && !task.assignee) ||
+                           (assigneeFilter !== 'unassigned' && task.assignee === assigneeFilter);
     
-    return matchesSearch && matchesPriority && matchesCategory;
+    return matchesSearch && matchesPriority && matchesCategory && matchesAssignee;
   });
 
   const handleAddTask = (status: Task['status']) => {
@@ -356,6 +360,9 @@ function App() {
                     categoryFilter={categoryFilter}
                     onCategoryFilterChange={setCategoryFilter}
                     categories={categories}
+                    assigneeFilter={assigneeFilter}
+                    onAssigneeFilterChange={setAssigneeFilter}
+                    boardMembers={currentBoard?.members}
                   />
 
                   {/* Quick Add Button */}
@@ -391,6 +398,7 @@ function App() {
                           onDragOver={handleDragOver}
                           onDrop={handleDrop}
                           onDragStart={handleDragStart}
+                          boardMembers={currentBoard?.members}
                         />
                       </motion.div>
                     ))}
@@ -434,6 +442,7 @@ function App() {
           onClose={() => setIsTaskFormOpen(false)}
           onSave={handleSaveTask}
           defaultStatus={defaultStatus}
+          boardMembers={currentBoard?.members}
         />
         
         {/* Board Form Modal */}

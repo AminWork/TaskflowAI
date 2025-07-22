@@ -1,21 +1,24 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Task } from '../types';
-import { Calendar, Flag, Tag, Trash2, Edit3 } from 'lucide-react';
+import { Task, BoardMember } from '../types';
+import { Calendar, Flag, Tag, Trash2, Edit3, User, Clock } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
   onDragStart: (e: React.DragEvent, task: Task) => void;
+  boardMembers?: BoardMember[];
 }
 
-export function TaskCard({ task, onDelete, onEdit, onDragStart }: TaskCardProps) {
+export function TaskCard({ task, onDelete, onEdit, onDragStart, boardMembers = [] }: TaskCardProps) {
   const priorityColors = {
     low: 'bg-green-100 text-green-800 border-green-200',
     medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     high: 'bg-red-100 text-red-800 border-red-200',
   };
+
+  const assignedMember = task.assignee ? boardMembers.find(m => m.userId === task.assignee) : null;
 
   return (
     <motion.div
@@ -66,15 +69,44 @@ export function TaskCard({ task, onDelete, onEdit, onDragStart }: TaskCardProps)
           ))}
         </div>
         
-        <div className="flex items-center justify-between">
-          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${priorityColors[task.priority]}`}>
-            <Flag size={12} className="mr-1" />
-            {task.priority}
-          </span>
-          
-          <div className="flex items-center text-xs text-gray-500">
-            <Calendar size={12} className="mr-1" />
-            {new Date(task.createdAt).toLocaleDateString()}
+        <div className="space-y-3">
+          {/* Assignee and Time */}
+          <div className="flex items-center justify-between">
+            {assignedMember ? (
+              <div className="flex items-center space-x-2">
+                <img
+                  src={assignedMember.avatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop&crop=face`}
+                  alt={assignedMember.name}
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+                <span className="text-xs font-medium text-gray-700">{assignedMember.name}</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1 text-xs text-gray-500">
+                <User size={12} />
+                <span>Unassigned</span>
+              </div>
+            )}
+            
+            {task.estimatedHours && (
+              <div className="flex items-center space-x-1 text-xs text-blue-600">
+                <Clock size={12} />
+                <span>{task.estimatedHours}h</span>
+              </div>
+            )}
+          </div>
+
+          {/* Priority and Date */}
+          <div className="flex items-center justify-between">
+            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${priorityColors[task.priority]}`}>
+              <Flag size={12} className="mr-1" />
+              {task.priority}
+            </span>
+            
+            <div className="flex items-center text-xs text-gray-500">
+              <Calendar size={12} className="mr-1" />
+              {new Date(task.createdAt).toLocaleDateString()}
+            </div>
           </div>
         </div>
       </div>

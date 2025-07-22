@@ -1,6 +1,6 @@
 import React from 'react';
-import { Search, Filter, X } from 'lucide-react';
-import { Task } from '../types';
+import { Search, Filter, X, User } from 'lucide-react';
+import { Task, BoardMember } from '../types';
 
 interface SearchAndFilterProps {
   searchQuery: string;
@@ -10,6 +10,9 @@ interface SearchAndFilterProps {
   categoryFilter: string;
   onCategoryFilterChange: (category: string) => void;
   categories: string[];
+  assigneeFilter: string;
+  onAssigneeFilterChange: (assignee: string) => void;
+  boardMembers?: BoardMember[];
 }
 
 export function SearchAndFilter({
@@ -20,13 +23,17 @@ export function SearchAndFilter({
   categoryFilter,
   onCategoryFilterChange,
   categories,
+  assigneeFilter,
+  onAssigneeFilterChange,
+  boardMembers = [],
 }: SearchAndFilterProps) {
-  const hasActiveFilters = searchQuery || priorityFilter !== 'all' || categoryFilter;
+  const hasActiveFilters = searchQuery || priorityFilter !== 'all' || categoryFilter || assigneeFilter;
 
   const clearFilters = () => {
     onSearchChange('');
     onPriorityFilterChange('all');
     onCategoryFilterChange('');
+    onAssigneeFilterChange('');
   };
 
   return (
@@ -70,6 +77,23 @@ export function SearchAndFilter({
               </option>
             ))}
           </select>
+
+          <div className="relative">
+            <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <select
+              value={assigneeFilter}
+              onChange={(e) => onAssigneeFilterChange(e.target.value)}
+              className="pl-9 pr-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none bg-white"
+            >
+              <option value="">All Assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {boardMembers.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {hasActiveFilters && (
             <button

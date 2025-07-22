@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Column, Task } from '../types';
+import { Column, Task, BoardMember } from '../types';
 import { TaskCard } from './TaskCard';
 import { Plus } from 'lucide-react';
 
@@ -13,6 +13,7 @@ interface KanbanColumnProps {
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, status: Task['status']) => void;
   onDragStart: (e: React.DragEvent, task: Task) => void;
+  boardMembers?: BoardMember[];
 }
 
 export function KanbanColumn({
@@ -24,6 +25,7 @@ export function KanbanColumn({
   onDragOver,
   onDrop,
   onDragStart,
+  boardMembers = [],
 }: KanbanColumnProps) {
   return (
     <motion.div
@@ -67,6 +69,7 @@ export function KanbanColumn({
               onDelete={onDeleteTask}
               onEdit={onEditTask}
               onDragStart={onDragStart}
+              boardMembers={boardMembers}
             />
           ))}
         </AnimatePresence>
