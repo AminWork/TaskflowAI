@@ -1,4 +1,4 @@
-import { KanbanBoard, BoardMember } from '../types';
+import { KanbanBoard, BoardMember, Task } from '../types';
 
 export function normalizeBoard(apiBoard: any): KanbanBoard {
   return {
@@ -33,5 +33,37 @@ export function normalizeUser(apiUser: any) {
     name: apiUser.name,
     avatar: apiUser.avatar,
     createdAt: new Date(apiUser.created_at),
+  };
+}
+
+export function normalizeInvitation(apiInv: any) {
+  return {
+    id: apiInv.id.toString(),
+    boardId: apiInv.board_id ? apiInv.board_id.toString() : apiInv.board.id.toString(),
+    boardTitle: apiInv.board_title || apiInv.board.title,
+    invitedBy: apiInv.invited_by ? apiInv.invited_by.toString() : apiInv.inviter.id.toString(),
+    invitedByName: apiInv.invited_by_name || apiInv.inviter.name,
+    invitedEmail: apiInv.invited_email,
+    role: apiInv.role,
+    status: apiInv.status,
+    createdAt: new Date(apiInv.created_at),
+    expiresAt: new Date(apiInv.expires_at),
+  };
+}
+
+export function normalizeTask(apiTask: any): Task {
+  return {
+    id: apiTask.id.toString(),
+    title: apiTask.title,
+    description: apiTask.description,
+    priority: apiTask.priority,
+    category: apiTask.category,
+    status: apiTask.status,
+    createdAt: new Date(apiTask.created_at),
+    updatedAt: new Date(apiTask.updated_at),
+    tags: apiTask.tags || [],
+    estimatedHours: apiTask.estimated_hours,
+    actualHours: apiTask.actual_hours,
+    assignee: apiTask.assignee_id?.toString(),
   };
 } 

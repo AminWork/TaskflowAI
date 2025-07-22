@@ -10,10 +10,12 @@ import { Navigation } from './components/Navigation';
 import { Analytics } from './components/Analytics';
 import { MemberManagement } from './components/MemberManagement';
 import { BoardForm } from './components/BoardForm';
+import { BoardDashboard } from './components/BoardDashboard';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useAuth } from './hooks/useAuth';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useBoards } from './hooks/useBoards';
+import { useTasks } from './hooks/useTasks';
 import { Plus, Sparkles } from 'lucide-react';
 
 const columns: Column[] = [
@@ -38,11 +40,19 @@ function App() {
     hasPermission,
     deleteBoard,
   } = useBoards(user, token);
-  
-  const [tasks, setTasks] = useLocalStorage<Task[]>(`kanban-tasks-${currentBoard?.id || 'default'}`, []);
-  const [currentView, setCurrentView] = useState<'kanban' | 'analytics' | 'members'>('kanban');
+
+  const {
+    tasks,
+    isLoading: isTasksLoading,
+    createTask,
+    updateTask,
+    deleteTask,
+    moveTask,
+  } = useTasks(currentBoard?.id || null, token);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'analytics' | 'members'>('dashboard');
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isBoardFormOpen, setIsBoardFormOpen] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<KanbanBoard | undefined>();
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [defaultStatus, setDefaultStatus] = useState<Task['status']>('todo');
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
@@ -61,21 +71,6 @@ function App() {
       setCurrentBoard(boards[0]);
     }
   }, [boards, currentBoard, setCurrentBoard]);
-
-  // Update tasks storage key when board changes
-  useEffect(() => {
-    if (currentBoard) {
-      const boardTasks = JSON.parse(localStorage.getItem(`kanban-tasks-${currentBoard.id}`) || '[]');
-      setTasks(boardTasks);
-    }
-  }, [currentBoard?.id]);
-
-  // Save tasks to board-specific storage
-  useEffect(() => {
-    if (currentBoard) {
-      localStorage.setItem(`kanban-tasks-${currentBoard.id}`, JSON.stringify(tasks));
-    }
-  }, [tasks, currentBoard?.id]);
 
   // Get unique categories for filter dropdown
   const categories = Array.from(new Set(tasks.map(task => task.category).filter(Boolean)));
@@ -111,33 +106,23 @@ function App() {
     setIsTaskFormOpen(true);
   };
 
-  const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingTask) {
       // Update existing task
-      setTasks(prev => prev.map(task => 
-        task.id === editingTask.id 
-          ? { ...task, ...taskData, updatedAt: new Date() }
-          : task
-      ));
+      await updateTask(editingTask.id, taskData);
     } else {
       // Create new task
-      const newTask: Task = {
-        ...taskData,
-        id: Date.now().toString(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setTasks(prev => [...prev, newTask]);
+      await createTask(taskData);
     }
     setIsTaskFormOpen(false);
   };
 
-  const handleDeleteTask = (id: string) => {
+  const handleDeleteTask = async (id: string) => {
     if (!currentBoard || !hasPermission(currentBoard.id, 'delete_task')) {
       alert('You do not have permission to delete tasks');
       return;
     }
-    setTasks(prev => prev.filter(task => task.id !== id));
+    await deleteTask(id);
   };
 
   const handleDragStart = (e: React.DragEvent, task: Task) => {
@@ -148,18 +133,14 @@ function App() {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, status: Task['status']) => {
+  const handleDrop = async (e: React.DragEvent, status: Task['status']) => {
     e.preventDefault();
     if (!currentBoard || !hasPermission(currentBoard.id, 'move_task')) {
       alert('You do not have permission to move tasks');
       return;
     }
     if (draggedTask && draggedTask.status !== status) {
-      setTasks(prev => prev.map(task => 
-        task.id === draggedTask.id 
-          ? { ...task, status, updatedAt: new Date() }
-          : task
-      ));
+      await moveTask(draggedTask.id, status);
     }
     setDraggedTask(null);
   };
@@ -172,11 +153,23 @@ function App() {
     const newBoard = await createBoard(title, description);
     if (newBoard) {
       setIsBoardFormOpen(false);
+      setEditingBoard(undefined);
+      setCurrentView('kanban');
     }
   };
 
-  const handleViewChange = (view: 'kanban' | 'analytics' | 'members') => {
-    if (!currentBoard && view !== 'kanban') {
+  const handleEditBoard = (board: KanbanBoard) => {
+    setEditingBoard(board);
+    setIsBoardFormOpen(true);
+  };
+
+  const handleSelectBoard = (board: KanbanBoard) => {
+    setCurrentBoard(board);
+    setCurrentView('kanban');
+  };
+
+  const handleViewChange = (view: 'dashboard' | 'kanban' | 'analytics' | 'members') => {
+    if (!currentBoard && view !== 'dashboard' && view !== 'kanban') {
       alert('Please select or create a board first');
       return;
     }
@@ -186,6 +179,45 @@ function App() {
   // Show auth form if not authenticated
   if (!isAuthenticated) {
     return <AuthForm onLogin={login} onRegister={register} isLoading={isLoading} />;
+  }
+
+  // Show dashboard if no board is selected or on dashboard view
+  if (currentView === 'dashboard' || (!currentBoard && boards.length > 0)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        {/* Navigation */}
+        <Navigation
+          user={user!}
+          currentView={currentView}
+          onViewChange={handleViewChange}
+          onLogout={logout}
+          boards={boards}
+          currentBoard={currentBoard}
+          onBoardSelect={setCurrentBoard}
+          onCreateBoard={() => setIsBoardFormOpen(true)}
+        />
+
+        <BoardDashboard
+          boards={boards}
+          currentUser={user!}
+          onBoardSelect={handleSelectBoard}
+          onCreateBoard={() => setIsBoardFormOpen(true)}
+          onEditBoard={handleEditBoard}
+          onDeleteBoard={deleteBoard}
+          hasPermission={hasPermission}
+        />
+        
+        <BoardForm
+          board={editingBoard}
+          isOpen={isBoardFormOpen}
+          onClose={() => {
+            setIsBoardFormOpen(false);
+            setEditingBoard(undefined);
+          }}
+          onSave={handleCreateBoard}
+        />
+      </div>
+    );
   }
 
   // Show board creation if no boards exist
@@ -363,8 +395,12 @@ function App() {
         
         {/* Board Form Modal */}
         <BoardForm
+          board={editingBoard}
           isOpen={isBoardFormOpen}
-          onClose={() => setIsBoardFormOpen(false)}
+          onClose={() => {
+            setIsBoardFormOpen(false);
+            setEditingBoard(undefined);
+          }}
           onSave={handleCreateBoard}
         />
 

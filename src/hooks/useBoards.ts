@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { KanbanBoard, BoardInvitation, User, Permission } from '../types';
 import { normalizeBoard } from '../utils/normalize';
+import { normalizeInvitation } from '../utils/normalize';
 import { useLocalStorage } from './useLocalStorage';
 
 export function useBoards(currentUser: User | null, token: string | null) {
@@ -45,7 +46,7 @@ export function useBoards(currentUser: User | null, token: string | null) {
 
       if (response.ok) {
         const data = await response.json();
-        setInvitations(data);
+        setInvitations(data.map((inv:any)=> normalizeInvitation(inv)));
       }
     } catch (error) {
       console.error('Failed to fetch invitations:', error);
@@ -90,7 +91,7 @@ export function useBoards(currentUser: User | null, token: string | null) {
     return null;
   };
 
-  const inviteUser = async (boardId: number, email: string, role: 'admin' | 'member' | 'viewer') => {
+  const inviteUser = async (boardId: string, email: string, role: 'admin' | 'member' | 'viewer') => {
     if (!currentUser || !token) return;
 
     try {
@@ -112,7 +113,7 @@ export function useBoards(currentUser: User | null, token: string | null) {
     }
   };
 
-  const acceptInvitation = async (invitationId: number) => {
+  const acceptInvitation = async (invitationId: string) => {
     if (!currentUser || !token) return;
 
     try {
@@ -133,7 +134,7 @@ export function useBoards(currentUser: User | null, token: string | null) {
     }
   };
 
-  const declineInvitation = async (invitationId: number) => {
+  const declineInvitation = async (invitationId: string) => {
     if (!currentUser || !token) return;
 
     try {

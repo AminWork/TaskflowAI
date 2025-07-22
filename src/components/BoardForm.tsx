@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, Users, Globe, Lock } from 'lucide-react';
+import { KanbanBoard } from '../types';
 
 interface BoardFormProps {
+  board?: KanbanBoard;
   isOpen: boolean;
   onClose: () => void;
   onSave: (title: string, description?: string) => void;
 }
 
-export function BoardForm({ isOpen, onClose, onSave }: BoardFormProps) {
+export function BoardForm({ board, isOpen, onClose, onSave }: BoardFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    if (board) {
+      setTitle(board.title);
+      setDescription(board.description || '');
+    } else {
+      setTitle('');
+      setDescription('');
+    }
+  }, [board]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +46,9 @@ export function BoardForm({ isOpen, onClose, onSave }: BoardFormProps) {
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Create New Board</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {board ? 'Edit Board' : 'Create New Board'}
+            </h2>
             <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
@@ -87,7 +101,7 @@ export function BoardForm({ isOpen, onClose, onSave }: BoardFormProps) {
                 className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <Save size={16} />
-                <span>Create Board</span>
+                <span>{board ? 'Save Changes' : 'Create Board'}</span>
               </button>
               <button
                 type="button"
