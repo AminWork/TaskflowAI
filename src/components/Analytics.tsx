@@ -1,6 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
+  BarChart3,
+  Target,
+  TrendingUp,
+  Clock,
+  Award,
+  Users,
+  Calendar,
+  Activity,
+} from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
+import {
   BarChart,
   Bar,
   XAxis,
@@ -13,56 +24,76 @@ import {
   Cell,
   LineChart,
   Line,
-  Area,
-  AreaChart,
 } from 'recharts';
-import { Analytics as AnalyticsType } from '../types';
-import {
-  TrendingUp,
-  Target,
-  Clock,
-  Award,
-  Activity,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Calendar,
-} from 'lucide-react';
+
+interface AnalyticsData {
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  todoTasks: number;
+  completionRate: number;
+  averageCompletionTime: number;
+  productivityScore: number;
+  weeklyProgress: Array<{
+    day: string;
+    completed: number;
+    created: number;
+  }>;
+  categoryBreakdown: Array<{
+    name: string;
+    value: number;
+  }>;
+  priorityDistribution: Array<{
+    name: string;
+    value: number;
+  }>;
+}
 
 interface AnalyticsProps {
-  analytics: AnalyticsType;
+  analytics: AnalyticsData;
 }
 
 const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
 
 export function Analytics({ analytics }: AnalyticsProps) {
+  const { t, isRTL } = useLanguage();
+
   const statCards = [
     {
-      title: 'Total Tasks',
+      title: t('analytics.totalTasks'),
       value: analytics.totalTasks,
       icon: Target,
       color: 'from-blue-500 to-blue-600',
       change: '+12%',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      textColor: 'text-blue-600 dark:text-blue-400',
     },
     {
-      title: 'Completion Rate',
+      title: t('analytics.completionRate'),
       value: `${analytics.completionRate.toFixed(1)}%`,
       icon: TrendingUp,
       color: 'from-green-500 to-green-600',
       change: '+5.2%',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
+      textColor: 'text-green-600 dark:text-green-400',
     },
     {
-      title: 'Avg. Completion',
+      title: t('analytics.avgCompletionTime'),
       value: `${analytics.averageCompletionTime.toFixed(1)}d`,
       icon: Clock,
       color: 'from-purple-500 to-purple-600',
       change: '-0.8d',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+      textColor: 'text-purple-600 dark:text-purple-400',
     },
     {
-      title: 'Productivity Score',
+      title: t('analytics.productivityScore'),
       value: analytics.productivityScore,
       icon: Award,
       color: 'from-orange-500 to-orange-600',
       change: '+8pts',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+      textColor: 'text-orange-600 dark:text-orange-400',
     },
   ];
 
@@ -72,14 +103,14 @@ export function Analytics({ analytics }: AnalyticsProps) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center space-x-3"
+        className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3`}
       >
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-2xl">
           <BarChart3 className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h2>
-          <p className="text-gray-600">Track your productivity and performance</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('analytics.title')}</h2>
+          <p className="text-gray-600 dark:text-gray-400">{t('analytics.subtitle')}</p>
         </div>
       </motion.div>
 
@@ -91,19 +122,19 @@ export function Analytics({ analytics }: AnalyticsProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300"
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className={`bg-gradient-to-r ${stat.color} p-3 rounded-xl`}>
                 <stat.icon className="w-6 h-6 text-white" />
               </div>
-              <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <span className={`text-sm font-medium ${stat.textColor} ${stat.bgColor} px-2 py-1 rounded-full`}>
                 {stat.change}
               </span>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</h3>
-              <p className="text-gray-600 text-sm">{stat.title}</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{stat.value}</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{stat.title}</p>
             </div>
           </motion.div>
         ))}
@@ -111,144 +142,147 @@ export function Analytics({ analytics }: AnalyticsProps) {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Weekly Progress Chart */}
+        {/* Weekly Progress */}
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700"
         >
-          <div className="flex items-center space-x-2 mb-6">
-            <Activity className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Weekly Progress</h3>
+          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3 mb-6`}>
+            <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('analytics.weeklyProgress')}</h3>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={analytics.weeklyProgress}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                }}
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={analytics.weeklyProgress}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+              <XAxis dataKey="day" stroke="#6B7280" />
+              <YAxis stroke="#6B7280" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }} 
               />
-              <Area
-                type="monotone"
-                dataKey="completed"
-                stackId="1"
-                stroke="#3B82F6"
-                fill="url(#colorCompleted)"
-              />
-              <Area
-                type="monotone"
-                dataKey="created"
-                stackId="1"
-                stroke="#8B5CF6"
-                fill="url(#colorCreated)"
-              />
-              <defs>
-                <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="colorCreated" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-            </AreaChart>
+              <Line type="monotone" dataKey="completed" stroke="#10B981" strokeWidth={3} />
+              <Line type="monotone" dataKey="created" stroke="#3B82F6" strokeWidth={3} />
+            </LineChart>
           </ResponsiveContainer>
         </motion.div>
 
         {/* Priority Distribution */}
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700"
         >
-          <div className="flex items-center space-x-2 mb-6">
-            <PieChartIcon className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Priority Distribution</h3>
+          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3 mb-6`}>
+            <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('analytics.priorityDistribution')}</h3>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
                 data={analytics.priorityDistribution}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={5}
-                dataKey="count"
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                label={(entry: any) => `${entry.name} ${(entry.percent ? (entry.percent * 100).toFixed(0) : 0)}%`}
               >
                 {analytics.priorityDistribution.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                }}
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }} 
               />
             </PieChart>
           </ResponsiveContainer>
-          <div className="flex justify-center space-x-4 mt-4">
-            {analytics.priorityDistribution.map((entry, index) => (
-              <div key={entry.priority} className="flex items-center space-x-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                />
-                <span className="text-sm text-gray-600 capitalize">{entry.priority}</span>
-              </div>
-            ))}
-          </div>
         </motion.div>
-      </div>
 
-      {/* Category Breakdown */}
-      {analytics.categoryBreakdown.length > 0 && (
+        {/* Category Breakdown */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 lg:col-span-2"
         >
-          <div className="flex items-center space-x-2 mb-6">
-            <Calendar className="w-5 h-5 text-green-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Category Breakdown</h3>
+          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3 mb-6`}>
+            <BarChart3 className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('analytics.categoryBreakdown')}</h3>
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={analytics.categoryBreakdown}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="category" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                }}
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+              <XAxis dataKey="name" stroke="#6B7280" />
+              <YAxis stroke="#6B7280" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }} 
               />
-              <Bar dataKey="count" fill="url(#colorBar)" radius={[4, 4, 0, 0]} />
-              <defs>
-                <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.6} />
-                </linearGradient>
-              </defs>
+              <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
-      )}
+      </div>
+
+      {/* Task Status Overview */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3 mb-4`}>
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
+              <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('analytics.todo')}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{analytics.todoTasks}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3 mb-4`}>
+            <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-xl">
+              <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('analytics.inProgress')}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{analytics.inProgressTasks}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3 mb-4`}>
+            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl">
+              <Target className="w-6 h-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('analytics.completed')}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{analytics.completedTasks}</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
