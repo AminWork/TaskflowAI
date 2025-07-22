@@ -15,7 +15,8 @@ import {
   Edit2,
   Trash2,
   Settings,
-  Clock
+  Clock,
+  UserPlus
 } from 'lucide-react';
 
 interface BoardDashboardProps {
@@ -25,6 +26,7 @@ interface BoardDashboardProps {
   onCreateBoard: () => void;
   onEditBoard: (board: KanbanBoard) => void;
   onDeleteBoard: (boardId: string) => void;
+  onInviteUsers: () => void;
   hasPermission: (boardId: string, action: Permission['action']) => boolean;
 }
 
@@ -35,6 +37,7 @@ export function BoardDashboard({
   onCreateBoard,
   onEditBoard,
   onDeleteBoard,
+  onInviteUsers,
   hasPermission
 }: BoardDashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,15 +89,27 @@ export function BoardDashboard({
             </p>
           </div>
           
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onCreateBoard}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
-          >
-            <Plus size={20} />
-            <span>New Board</span>
-          </motion.button>
+          <div className="flex space-x-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onInviteUsers}
+              className="bg-gradient-to-r from-green-500 to-teal-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
+            >
+              <UserPlus size={20} />
+              <span>Invite Users</span>
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onCreateBoard}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
+            >
+              <Plus size={20} />
+              <span>New Board</span>
+            </motion.button>
+          </div>
         </div>
 
         {/* Search and Filters */}

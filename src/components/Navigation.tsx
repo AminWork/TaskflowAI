@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Kanban, BarChart3, LogOut, Users, Sparkles, Grid3X3 } from 'lucide-react';
+import { Kanban, BarChart3, LogOut, Users, Sparkles, Grid3X3, UserPlus, Bell } from 'lucide-react';
 import { User as UserType, KanbanBoard } from '../types';
 import { BoardSelector } from './BoardSelector';
 
@@ -13,6 +13,8 @@ interface NavigationProps {
   currentBoard: KanbanBoard | null;
   onBoardSelect: (board: KanbanBoard) => void;
   onCreateBoard: () => void;
+  onInviteUsers: () => void;
+  invitationCount?: number;
 }
 
 export function Navigation({ 
@@ -23,7 +25,9 @@ export function Navigation({
   boards,
   currentBoard,
   onBoardSelect,
-  onCreateBoard
+  onCreateBoard,
+  onInviteUsers,
+  invitationCount = 0
 }: NavigationProps) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Grid3X3 },
@@ -80,6 +84,36 @@ export function Navigation({
                 <span className="font-medium">{item.label}</span>
               </motion.button>
             ))}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex items-center space-x-3">
+            {/* Invite Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onInviteUsers}
+              className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300"
+              title="Invite Users"
+            >
+              <UserPlus className="w-5 h-5" />
+            </motion.button>
+
+            {/* Invitations Bell */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onViewChange('dashboard')}
+              className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300"
+              title="View Invitations"
+            >
+              <Bell className="w-5 h-5" />
+              {invitationCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {invitationCount > 9 ? '9+' : invitationCount}
+                </span>
+              )}
+            </motion.button>
           </div>
 
           {/* User Menu */}

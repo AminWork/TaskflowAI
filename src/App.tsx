@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Task, Column, KanbanBoard } from './types';
+import { Task, Column, KanbanBoard, Permission } from './types';
 import { KanbanColumn } from './components/KanbanColumn';
 import { TaskForm } from './components/TaskForm';
 import { AIAssistant } from './components/AIAssistant';
@@ -11,6 +11,8 @@ import { Analytics } from './components/Analytics';
 import { MemberManagement } from './components/MemberManagement';
 import { BoardForm } from './components/BoardForm';
 import { BoardDashboard } from './components/BoardDashboard';
+import { QuickInviteModal } from './components/QuickInviteModal';
+import { InviteNotifications } from './components/InviteNotifications';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useAuth } from './hooks/useAuth';
 import { useAnalytics } from './hooks/useAnalytics';
@@ -53,6 +55,7 @@ function App() {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isBoardFormOpen, setIsBoardFormOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<KanbanBoard | undefined>();
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [defaultStatus, setDefaultStatus] = useState<Task['status']>('todo');
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
@@ -176,6 +179,15 @@ function App() {
     setCurrentView(view);
   };
 
+  const handleInviteUsers = async (boardId: string, email: string, role: 'admin' | 'member' | 'viewer') => {
+    try {
+      await inviteUser(boardId, email, role);
+    } catch (error) {
+      console.error('Failed to invite user:', error);
+      throw error;
+    }
+  };
+
   // Show auth form if not authenticated
   if (!isAuthenticated) {
     return <AuthForm onLogin={login} onRegister={register} isLoading={isLoading} />;
@@ -195,7 +207,18 @@ function App() {
           currentBoard={currentBoard}
           onBoardSelect={setCurrentBoard}
           onCreateBoard={() => setIsBoardFormOpen(true)}
+          onInviteUsers={() => setIsInviteModalOpen(true)}
+          invitationCount={invitations.filter(inv => inv.status === 'pending').length}
         />
+
+        {/* Invite Notifications */}
+        <div className="container mx-auto px-4 pt-8">
+          <InviteNotifications
+            invitations={invitations}
+            onAcceptInvitation={acceptInvitation}
+            onDeclineInvitation={declineInvitation}
+          />
+        </div>
 
         <BoardDashboard
           boards={boards}
@@ -204,7 +227,16 @@ function App() {
           onCreateBoard={() => setIsBoardFormOpen(true)}
           onEditBoard={handleEditBoard}
           onDeleteBoard={deleteBoard}
+          onInviteUsers={() => setIsInviteModalOpen(true)}
           hasPermission={hasPermission}
+        />
+        
+        {/* Quick Invite Modal */}
+        <QuickInviteModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          boards={boards}
+          onInviteUser={handleInviteUsers}
         />
         
         <BoardForm
@@ -266,6 +298,17 @@ function App() {
         currentBoard={currentBoard}
         onBoardSelect={setCurrentBoard}
         onCreateBoard={() => setIsBoardFormOpen(true)}
+        onInviteUsers={() => setIsInviteModalOpen(true)}
+        invitationCount={invitations.filter(inv => inv.status === 'pending').length}
+      />
+
+      {/* Quick Invite Modal */}
+      <QuickInviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        boards={boards}
+        onInviteUser={handleInviteUsers}
+        currentBoardId={currentBoard?.id}
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -376,7 +419,7 @@ function App() {
                     onUpdateRole={(userId, role) => updateMemberRole(currentBoard.id, userId, role)}
                     onAcceptInvitation={acceptInvitation}
                     onDeclineInvitation={declineInvitation}
-                    hasPermission={(action) => hasPermission(currentBoard.id, action)}
+                    hasPermission={(action) => hasPermission(currentBoard.id, action as Permission['action'])}
                   />
                 )
               )}
