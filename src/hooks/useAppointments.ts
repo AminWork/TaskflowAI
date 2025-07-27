@@ -26,7 +26,7 @@ export const useAppointments = () => {
 
       const data = await response.json();
       // Convert date strings to Date objects
-      const formattedData = data.map((appt: any) => ({
+      const formattedData = (data || []).map((appt: any) => ({
         ...appt,
         start: new Date(appt.start),
         end: new Date(appt.end),

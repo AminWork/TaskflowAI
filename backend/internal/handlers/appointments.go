@@ -9,12 +9,13 @@ import (
 
 	"kanban-backend/internal/database"
 	"kanban-backend/internal/models"
+	"kanban-backend/internal/middleware"
 )
 
 // GetAppointments retrieves all appointments for the authenticated user.
 func GetAppointments(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID := middleware.GetUserID(c)
+	if userID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -25,7 +26,7 @@ func GetAppointments(c *gin.Context) {
 		return
 	}
 
-	var response []models.AppointmentResponse
+	response := make([]models.AppointmentResponse, 0)
 	for _, appt := range appointments {
 		response = append(response, models.AppointmentResponse{
 			ID:    appt.ID,
@@ -41,8 +42,8 @@ func GetAppointments(c *gin.Context) {
 
 // CreateAppointment creates a new appointment for the authenticated user.
 func CreateAppointment(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID := middleware.GetUserID(c)
+	if userID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -57,7 +58,7 @@ func CreateAppointment(c *gin.Context) {
 		Title:  req.Title,
 		Start:  req.Start,
 		End:    req.End,
-		UserID: userID.(uint),
+		UserID: userID,
 	}
 
 	if err := database.DB.Create(&appointment).Error; err != nil {
@@ -76,8 +77,8 @@ func CreateAppointment(c *gin.Context) {
 
 // UpdateAppointment updates an existing appointment.
 func UpdateAppointment(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID := middleware.GetUserID(c)
+	if userID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -104,7 +105,7 @@ func UpdateAppointment(c *gin.Context) {
 		return
 	}
 
-	if appointment.UserID != userID.(uint) {
+	if appointment.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to update this appointment"})
 		return
 	}
@@ -129,8 +130,8 @@ func UpdateAppointment(c *gin.Context) {
 
 // DeleteAppointment deletes an appointment.
 func DeleteAppointment(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID := middleware.GetUserID(c)
+	if userID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -151,7 +152,7 @@ func DeleteAppointment(c *gin.Context) {
 		return
 	}
 
-	if appointment.UserID != userID.(uint) {
+	if appointment.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to delete this appointment"})
 		return
 	}
