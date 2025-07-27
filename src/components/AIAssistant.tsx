@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, Task } from '../types';
-import { MessageCircle, Mic, MicOff, Send, Bot, User, Volume2 } from 'lucide-react';
+import { MessageCircle, Mic, MicOff, Send, Bot, User, Volume2, Brain } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { generateAIResponse } from '../utils/aiResponses';
 import { speakText } from '../utils/textToSpeech';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AIAssistantProps {
   tasks: Task[];
@@ -11,13 +12,17 @@ interface AIAssistantProps {
 }
 
 export function AIAssistant({ tasks, onTaskCreated }: AIAssistantProps) {
+  const { isRTL } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
+      boardId: '1',
+      userId: 'ai',
       content: "Hi! I'm your AI assistant. I can help you manage your tasks, provide productivity tips, and you can even use voice commands to create new tasks. Try saying 'Create a task to...' or ask me about your progress!",
       sender: 'ai',
-      timestamp: new Date(),
+      userName: 'AI Assistant',
+      createdAt: new Date().toISOString(),
     },
   ]);
   const [inputMessage, setInputMessage] = useState('');
@@ -48,9 +53,12 @@ export function AIAssistant({ tasks, onTaskCreated }: AIAssistantProps) {
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
+      boardId: '1',
+      userId: 'user',
       content: inputMessage,
       sender: 'user',
-      timestamp: new Date(),
+      userName: 'User',
+      createdAt: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -77,9 +85,12 @@ export function AIAssistant({ tasks, onTaskCreated }: AIAssistantProps) {
         
         const aiResponse: ChatMessage = {
           id: (Date.now() + 1).toString(),
+          boardId: '1',
+          userId: 'ai',
           content: `Perfect! I've created a new task: "${taskTitle}" with ${priority} priority. You can find it in your To Do column.`,
           sender: 'ai',
-          timestamp: new Date(),
+          userName: 'AI Assistant',
+          createdAt: new Date().toISOString(),
         };
         
         setMessages(prev => [...prev, aiResponse]);
@@ -91,9 +102,12 @@ export function AIAssistant({ tasks, onTaskCreated }: AIAssistantProps) {
       
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
+        boardId: '1',
+        userId: 'ai',
         content: aiResponseText,
         sender: 'ai',
-        timestamp: new Date(),
+        userName: 'AI Assistant',
+        createdAt: new Date().toISOString(),
       };
       
       setTimeout(() => {
@@ -120,14 +134,14 @@ export function AIAssistant({ tasks, onTaskCreated }: AIAssistantProps) {
       {/* AI Assistant Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-40"
+        className={`fixed bottom-24 ${isRTL ? 'left-6' : 'right-6'} bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-40`}
       >
-        <MessageCircle size={24} />
+        <Brain size={24} />
       </button>
 
       {/* AI Assistant Panel */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col z-50">
+        <div className={`fixed bottom-44 ${isRTL ? 'left-6' : 'right-6'} w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col z-50`}>
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl">
             <div className="flex items-center space-x-2">
               <Bot size={20} />
@@ -168,7 +182,7 @@ export function AIAssistant({ tasks, onTaskCreated }: AIAssistantProps) {
                     <div className="flex-1">
                       <p className="text-sm">{message.content}</p>
                       <p className="text-xs opacity-70 mt-1">
-                        {message.timestamp.toLocaleTimeString()}
+                        {new Date(message.createdAt).toLocaleTimeString()}
                       </p>
                     </div>
                     {message.sender === 'ai' && (

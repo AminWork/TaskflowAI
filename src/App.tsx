@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task, Column, KanbanBoard, Permission } from './types';
 import { useLanguage } from './contexts/LanguageContext';
+import { useNotifications } from './contexts/NotificationContext';
 import { KanbanColumn } from './components/KanbanColumn';
 import { TaskForm } from './components/TaskForm';
 import { AIAssistant } from './components/AIAssistant';
@@ -19,18 +20,35 @@ import { useAuth } from './hooks/useAuth';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useBoards } from './hooks/useBoards';
 import { useTasks } from './hooks/useTasks';
-import { Plus, Sparkles } from 'lucide-react';
+import { ChatWindow } from './components/Chat/ChatWindow';
+import { ConversationsList } from './components/PrivateMessages/ConversationsList';
+import { migrateLocalStorageKeys } from './utils/migrateLocalStorage';
+import { useWebSocket } from './hooks/useWebSocket';
+import { Plus, Sparkles, MessageCircle, Mail } from 'lucide-react';
 
 function App() {
+  // Run localStorage migration on app start
+  useEffect(() => {
+    migrateLocalStorageKeys();
+  }, []);
+
   const { t, isRTL, language } = useLanguage();
-  
-  const columns: Column[] = [
+  const { unreadMessages, requestNotificationPermission } = useNotifications();
+
+const columns: Column[] = [
     { id: '1', title: t('task.todo'), status: 'todo', color: 'bg-blue-500' },
     { id: '2', title: t('task.inprogress'), status: 'inprogress', color: 'bg-yellow-500' },
     { id: '3', title: t('task.done'), status: 'done', color: 'bg-green-500' },
-  ];
+];
 
   const { user, token, isLoading, login, register, logout, isAuthenticated } = useAuth();
+  
+  // Request notification permission when app loads
+  useEffect(() => {
+    if (isAuthenticated) {
+      requestNotificationPermission();
+    }
+  }, [isAuthenticated, requestNotificationPermission]);
   const {
     boards,
     currentBoard,
@@ -45,7 +63,7 @@ function App() {
     hasPermission,
     deleteBoard,
   } = useBoards(user, token);
-
+  
   const {
     tasks,
     isLoading: isTasksLoading,
@@ -62,6 +80,8 @@ function App() {
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [defaultStatus, setDefaultStatus] = useState<Task['status']>('todo');
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isPrivateMessagesOpen, setIsPrivateMessagesOpen] = useState(false);
   
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,6 +98,11 @@ function App() {
       setCurrentBoard(boards[0]);
     }
   }, [boards, currentBoard, setCurrentBoard]);
+  
+  // Connect to WebSocket for private messages
+  useWebSocket({
+    messageTypes: ['private_message'],
+  });
 
   // Get unique categories for filter dropdown
   const categories = Array.from(new Set(tasks.map(task => task.category).filter(Boolean)));
@@ -162,7 +187,7 @@ function App() {
   const handleCreateBoard = async (title: string, description?: string) => {
     const newBoard = await createBoard(title, description);
     if (newBoard) {
-      setIsBoardFormOpen(false);
+    setIsBoardFormOpen(false);
       setEditingBoard(undefined);
       setCurrentView('kanban');
     }
@@ -205,17 +230,18 @@ function App() {
         transition={{ duration: 0.3 }}
       >
         {(() => {
-          // Show auth form if not authenticated
-          if (!isAuthenticated) {
-            return <AuthForm onLogin={login} onRegister={register} isLoading={isLoading} />;
-          }
+  // Show auth form if not authenticated
+  if (!isAuthenticated) {
+    return <AuthForm onLogin={login} onRegister={register} isLoading={isLoading} />;
+  }
 
           // Show dashboard if no board is selected or on dashboard view
           if (currentView === 'dashboard' || (!currentBoard && boards.length > 0)) {
-            return (
+    return (
               <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
                 {/* Navigation */}
                 <Navigation
+                  key={language} // Add key to force re-render on language change
                   user={user!}
                   currentView={currentView}
                   onViewChange={handleViewChange}
@@ -235,7 +261,7 @@ function App() {
                     onAcceptInvitation={acceptInvitation}
                     onDeclineInvitation={declineInvitation}
                   />
-                </div>
+          </div>
 
                 <BoardDashboard
                   boards={boards}
@@ -255,196 +281,241 @@ function App() {
                   boards={boards}
                   onInviteUser={handleInviteUsers}
                 />
-                
-                <BoardForm
+        
+        <BoardForm
                   board={editingBoard}
-                  isOpen={isBoardFormOpen}
+          isOpen={isBoardFormOpen}
                   onClose={() => {
                     setIsBoardFormOpen(false);
                     setEditingBoard(undefined);
                   }}
-                  onSave={handleCreateBoard}
-                />
-              </div>
-            );
-          }
-          
+          onSave={handleCreateBoard}
+        />
+      </div>
+    );
+  }
+
           // Main Kanban View
-          return (
+  return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6 transition-colors duration-300">
-              {/* Navigation */}
-              <Navigation
-                user={user!}
-                currentView={currentView}
-                onViewChange={handleViewChange}
-                onLogout={logout}
-                boards={boards}
-                currentBoard={currentBoard}
-                onBoardSelect={setCurrentBoard}
-                onCreateBoard={() => setIsBoardFormOpen(true)}
+      {/* Navigation */}
+      <Navigation
+                key={language} // Add key to force re-render on language change
+        user={user!}
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        onLogout={logout}
+        boards={boards}
+        currentBoard={currentBoard}
+        onBoardSelect={setCurrentBoard}
+        onCreateBoard={() => setIsBoardFormOpen(true)}
                 onInviteUsers={() => setIsInviteModalOpen(true)}
                 invitationCount={invitations.filter(inv => inv.status === 'pending').length}
               />
 
-              {/* Quick Invite Modal */}
-              <QuickInviteModal
-                isOpen={isInviteModalOpen}
-                onClose={() => setIsInviteModalOpen(false)}
-                boards={boards}
-                onInviteUser={handleInviteUsers}
-                currentBoardId={currentBoard?.id}
-              />
+              {/* Private Messages Toggle Button */}
+              <motion.button
+                key={`private-messages-button-${language}`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsPrivateMessagesOpen(!isPrivateMessagesOpen)}
+                className={`fixed ${isRTL ? 'left-6' : 'right-6'} bottom-24 p-4 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40`}
+                title="Private Messages"
+              >
+                <Mail size={24} />
+                {unreadMessages > 0 && (
+                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </div>
+                )}
+              </motion.button>
 
-              <div className="container mx-auto px-4 py-8">
-                <AnimatePresence mode="wait">
-                  {currentView === 'kanban' ? (
-                    <motion.div
-                      key="kanban"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {/* Header */}
-                      {currentBoard && (
-                        <div className="text-center mb-8">
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center justify-center space-x-3 mb-4"
-                          >
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                              {currentBoard.title}
-                            </h1>
-                            <Sparkles size={32} className="text-purple-500" />
-                          </motion.div>
-                          <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                            className="text-gray-600 text-lg"
-                          >
-                            {currentBoard.description || 'Manage your tasks with AI assistance and voice commands'}
-                          </motion.p>
-                        </div>
-                      )}
+              {/* Chat Toggle Button */}
+              <motion.button
+                key={`chat-button-${language}`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsChatOpen(!isChatOpen)}
+                className={`fixed ${isRTL ? 'left-6' : 'right-6'} bottom-6 p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40 ${!currentBoard ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={t('chat.title')}
+                disabled={!currentBoard}
+              >
+                <MessageCircle size={24} />
+              </motion.button>
 
-                      {currentBoard && (
-                        <>
-                          {/* Search and Filter */}
-                          <SearchAndFilter
-                            searchQuery={searchQuery}
-                            onSearchChange={setSearchQuery}
-                            priorityFilter={priorityFilter}
-                            onPriorityFilterChange={setPriorityFilter}
-                            categoryFilter={categoryFilter}
-                            onCategoryFilterChange={setCategoryFilter}
-                            categories={categories}
+              {/* Private Messages */}
+              <AnimatePresence>
+                {isPrivateMessagesOpen && user && (
+                  <ConversationsList
+                    currentUser={user}
+                    isOpen={isPrivateMessagesOpen}
+                    onClose={() => setIsPrivateMessagesOpen(false)}
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Chat Window */}
+              <AnimatePresence>
+                {isChatOpen && currentBoard && user && (
+                  <ChatWindow
+                    board={currentBoard}
+                    currentUser={user}
+                    isOpen={isChatOpen}
+                    onClose={() => setIsChatOpen(false)}
+                  />
+                )}
+              </AnimatePresence>
+
+      <div className="container mx-auto px-4 py-8">
+        <AnimatePresence mode="wait">
+          {currentView === 'kanban' ? (
+            <motion.div
+              key="kanban"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Header */}
+              {currentBoard && (
+                <div className="text-center mb-8">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-center space-x-3 mb-4"
+                  >
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      {currentBoard.title}
+                    </h1>
+                    <Sparkles size={32} className="text-purple-500" />
+                  </motion.div>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-gray-600 text-lg"
+                  >
+                    {currentBoard.description || 'Manage your tasks with AI assistance and voice commands'}
+                  </motion.p>
+                </div>
+              )}
+
+              {currentBoard && (
+                <>
+                  {/* Search and Filter */}
+                  <SearchAndFilter
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    priorityFilter={priorityFilter}
+                    onPriorityFilterChange={setPriorityFilter}
+                    categoryFilter={categoryFilter}
+                    onCategoryFilterChange={setCategoryFilter}
+                    categories={categories}
                             assigneeFilter={assigneeFilter}
                             onAssigneeFilterChange={setAssigneeFilter}
                             boardMembers={currentBoard?.members}
-                          />
+                  />
 
-                          {/* Quick Add Button */}
-                          {hasPermission(currentBoard.id, 'create_task') && (
-                            <div className="flex justify-center mb-8">
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleAddTask('todo')}
-                                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center space-x-3 text-lg font-semibold"
-                              >
-                                <Plus size={24} />
-                                <span>Create New Task</span>
-                              </motion.button>
-                            </div>
-                          )}
-
-                          {/* Kanban Board */}
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            {columns.map((column, index) => (
-                              <motion.div
-                                key={column.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                              >
-                                <KanbanColumn
-                                  column={column}
-                                  tasks={filteredTasks.filter(task => task.status === column.status)}
-                                  onAddTask={handleAddTask}
-                                  onDeleteTask={handleDeleteTask}
-                                  onEditTask={handleEditTask}
-                                  onDragOver={handleDragOver}
-                                  onDrop={handleDrop}
-                                  onDragStart={handleDragStart}
-                                  boardMembers={currentBoard?.members}
-                                />
-                              </motion.div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="analytics"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {currentView === 'analytics' ? (
-                        <Analytics analytics={analytics} />
-                      ) : (
-                        currentBoard && (
-                          <MemberManagement
-                            board={currentBoard}
-                            invitations={invitations}
-                            currentUser={user!}
-                            onInviteUser={(email, role) => inviteUser(currentBoard.id, email, role)}
-                            onRemoveMember={(userId) => removeMember(currentBoard.id, userId)}
-                            onUpdateRole={(userId, role) => updateMemberRole(currentBoard.id, userId, role)}
-                            onAcceptInvitation={acceptInvitation}
-                            onDeclineInvitation={declineInvitation}
-                            hasPermission={(action) => hasPermission(currentBoard.id, action as Permission['action'])}
-                          />
-                        )
-                      )}
-                    </motion.div>
+                  {/* Quick Add Button */}
+                  {hasPermission(currentBoard.id, 'create_task') && (
+                    <div className="flex justify-center mb-8">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleAddTask('todo')}
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center space-x-3 text-lg font-semibold"
+                      >
+                        <Plus size={24} />
+                        <span>Create New Task</span>
+                      </motion.button>
+                    </div>
                   )}
-                </AnimatePresence>
 
-                {/* Task Form Modal */}
-                <TaskForm
-                  task={editingTask}
-                  isOpen={isTaskFormOpen}
-                  onClose={() => setIsTaskFormOpen(false)}
-                  onSave={handleSaveTask}
-                  defaultStatus={defaultStatus}
+                  {/* Kanban Board */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {columns.map((column, index) => (
+                      <motion.div
+                        key={column.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <KanbanColumn
+                          column={column}
+                          tasks={filteredTasks.filter(task => task.status === column.status)}
+                          onAddTask={handleAddTask}
+                          onDeleteTask={handleDeleteTask}
+                          onEditTask={handleEditTask}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          onDragStart={handleDragStart}
+                                  boardMembers={currentBoard?.members}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="analytics"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {currentView === 'analytics' ? (
+                <Analytics analytics={analytics} />
+              ) : (
+                currentBoard && (
+                  <MemberManagement
+                    board={currentBoard}
+                    invitations={invitations}
+                    currentUser={user!}
+                    onInviteUser={(email, role) => inviteUser(currentBoard.id, email, role)}
+                    onRemoveMember={(userId) => removeMember(currentBoard.id, userId)}
+                    onUpdateRole={(userId, role) => updateMemberRole(currentBoard.id, userId, role)}
+                    onAcceptInvitation={acceptInvitation}
+                    onDeclineInvitation={declineInvitation}
+                            hasPermission={(action) => hasPermission(currentBoard.id, action as Permission['action'])}
+                  />
+                )
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Task Form Modal */}
+        <TaskForm
+          task={editingTask}
+          isOpen={isTaskFormOpen}
+          onClose={() => setIsTaskFormOpen(false)}
+          onSave={handleSaveTask}
+          defaultStatus={defaultStatus}
                   boardMembers={currentBoard?.members}
-                />
-                
-                {/* Board Form Modal */}
-                <BoardForm
+        />
+        
+        {/* Board Form Modal */}
+        <BoardForm
                   board={editingBoard}
-                  isOpen={isBoardFormOpen}
+          isOpen={isBoardFormOpen}
                   onClose={() => {
                     setIsBoardFormOpen(false);
                     setEditingBoard(undefined);
                   }}
-                  onSave={handleCreateBoard}
-                />
+          onSave={handleCreateBoard}
+        />
 
-                {/* AI Assistant */}
-                {currentView === 'kanban' && (
-                  <AIAssistant
-                    tasks={tasks}
-                    onTaskCreated={handleTaskCreatedByAI}
-                  />
-                )}
-              </div>
-            </div>
+        {/* AI Assistant */}
+        {currentView === 'kanban' && (
+          <AIAssistant
+            tasks={tasks}
+            onTaskCreated={handleTaskCreatedByAI}
+          />
+        )}
+      </div>
+    </div>
           );
         })()}
       </motion.div>

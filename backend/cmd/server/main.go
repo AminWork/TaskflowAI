@@ -35,12 +35,27 @@ func main() {
 	authHandler := handlers.NewAuthHandler()
 	boardHandler := handlers.NewBoardHandler(hub)
 	taskHandler := handlers.NewTaskHandler(hub)
+	chatHandler := handlers.NewChatHandler(hub)
+	privateMessageHandler := handlers.NewPrivateMessageHandler(hub)
 
-	// Setup router
-	router := gin.Default()
+	// Setup router with custom configuration
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
+
+	// Set maximum multipart memory to 10MB
+	router.MaxMultipartMemory = 10 << 20 // 10 MB
 
 	// Middleware
 	router.Use(middleware.CORSMiddleware())
+
+	// Create uploads directory if it doesn't exist
+	if err := os.MkdirAll("/app/uploads", 0755); err != nil {
+		logger.Log.Fatal("Failed to create uploads directory", err)
+	}
+
+	// Static file serving for uploads
+	router.Static("/uploads", "/app/uploads")
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
@@ -98,7 +113,27 @@ func main() {
 				taskRoutes.PUT("/:id/move", taskHandler.MoveTask)
 			}
 
-			// WebSocket route
+			// Chat routes
+			chat := protected.Group("/chat")
+			{
+				chat.POST("/boards/:boardId/messages", chatHandler.SendMessage)
+				chat.GET("/boards/:boardId/messages", chatHandler.GetMessages)
+				chat.GET("/boards/:boardId/members", chatHandler.GetBoardMembers)
+				chat.DELETE("/messages/:messageId", chatHandler.DeleteMessage)
+				chat.GET("/users/search", chatHandler.SearchUsers)
+			}
+
+			// Private message routes
+			privateMessages := protected.Group("/private-messages")
+			{
+				privateMessages.POST("", privateMessageHandler.SendPrivateMessage)
+				privateMessages.GET("/conversations", privateMessageHandler.GetConversations)
+				privateMessages.GET("/users/:userId", privateMessageHandler.GetMessages)
+				privateMessages.PUT("/users/:senderId/read", privateMessageHandler.MarkAsRead)
+				privateMessages.GET("/unread-counts", privateMessageHandler.GetUnreadCounts)
+			}
+
+			// WebSocket routes
 			protected.GET("/ws/:id", func(c *gin.Context) {
 				boardID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 				if err != nil {
@@ -106,6 +141,13 @@ func main() {
 					return
 				}
 				c.Set("board_id", uint(boardID))
+				hub.HandleWebSocket(c)
+			})
+
+			// WebSocket route for private messages
+			protected.GET("/ws/private", func(c *gin.Context) {
+				// No board ID for private messages, just use user ID
+				c.Set("board_id", uint(0)) // Use 0 as a special value for private messages
 				hub.HandleWebSocket(c)
 			})
 		}

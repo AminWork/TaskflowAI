@@ -81,9 +81,9 @@ export function useBoards(currentUser: User | null, token: string | null) {
       if (response.ok) {
         const newBoardApi = await response.json();
         const newBoard = normalizeBoard(newBoardApi);
-        setBoards(prev => [...prev, newBoard]);
-        setCurrentBoard(newBoard);
-        return newBoard;
+    setBoards(prev => [...prev, newBoard]);
+    setCurrentBoard(newBoard);
+    return newBoard;
       }
     } catch (error) {
       console.error('Failed to create board:', error);
@@ -218,8 +218,8 @@ export function useBoards(currentUser: User | null, token: string | null) {
       });
 
       if (response.ok) {
-        setBoards(prev => prev.filter(b => b.id !== boardId));
-        if (currentBoard?.id === boardId) {
+    setBoards(prev => prev.filter(b => b.id !== boardId));
+    if (currentBoard?.id === boardId) {
           setCurrentBoard(null);
         }
       }

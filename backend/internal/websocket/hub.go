@@ -31,10 +31,11 @@ type Client struct {
 }
 
 type Message struct {
-	Type    string      `json:"type"`
-	BoardID uint        `json:"board_id"`
-	UserID  uint        `json:"user_id"`
-	Data    interface{} `json:"data"`
+	Type        string      `json:"type"`
+	BoardID     uint        `json:"board_id,omitempty"`
+	UserID      uint        `json:"user_id"`
+	RecipientID uint        `json:"recipient_id,omitempty"`
+	Data        interface{} `json:"data"`
 }
 
 func NewHub() *Hub {
@@ -162,4 +163,64 @@ func (h *Hub) BroadcastToBoard(boardID uint, messageType string, data interface{
 	if jsonData, err := json.Marshal(message); err == nil {
 		h.broadcast <- jsonData
 	}
+}
+
+// IsUserOnline checks if a user is currently connected to a specific board
+func (h *Hub) IsUserOnline(userID, boardID uint) bool {
+	for client := range h.clients {
+		if client.userID == userID && client.boardID == boardID {
+			return true
+		}
+	}
+	return false
+}
+
+// GetOnlineUsers returns a list of online users for a specific board
+func (h *Hub) GetOnlineUsers(boardID uint) []uint {
+	var onlineUsers []uint
+	userMap := make(map[uint]bool)
+
+	for client := range h.clients {
+		if client.boardID == boardID {
+			if !userMap[client.userID] {
+				onlineUsers = append(onlineUsers, client.userID)
+				userMap[client.userID] = true
+			}
+		}
+	}
+
+	return onlineUsers
+}
+
+// BroadcastPrivateMessage sends a private message to a specific user
+func (h *Hub) BroadcastPrivateMessage(recipientID uint, messageType string, data interface{}) {
+	message := Message{
+		Type:        messageType,
+		RecipientID: recipientID,
+		Data:        data,
+	}
+
+	if jsonData, err := json.Marshal(message); err == nil {
+		// Send to all connections of the recipient user
+		for client := range h.clients {
+			if client.userID == recipientID {
+				select {
+				case client.send <- jsonData:
+				default:
+					close(client.send)
+					delete(h.clients, client)
+				}
+			}
+		}
+	}
+}
+
+// IsUserOnlineAnywhere checks if a user is currently connected (regardless of board)
+func (h *Hub) IsUserOnlineAnywhere(userID uint) bool {
+	for client := range h.clients {
+		if client.userID == userID {
+			return true
+		}
+	}
+	return false
 }

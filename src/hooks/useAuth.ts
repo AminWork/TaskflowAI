@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User } from '../types';
 import { useLocalStorage } from './useLocalStorage';
 import { normalizeUser } from '../utils/normalize';
+import { clearAuthData } from '../utils/migrateLocalStorage';
 
 interface AuthResponse {
   user: User;
@@ -36,8 +37,8 @@ export function useAuth() {
       return true;
     } catch (error) {
       console.error('Login error:', error);
-      setIsLoading(false);
-      return false;
+    setIsLoading(false);
+    return false;
     }
   };
 
@@ -64,14 +65,15 @@ export function useAuth() {
       return true;
     } catch (error) {
       console.error('Registration error:', error);
-      setIsLoading(false);
-      return false;
+    setIsLoading(false);
+    return false;
     }
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
+    clearAuthData(); // Clear all auth data from localStorage
   };
 
   // Verify token on app start

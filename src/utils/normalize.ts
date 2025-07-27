@@ -1,4 +1,4 @@
-import { KanbanBoard, BoardMember, Task } from '../types';
+import { KanbanBoard, BoardMember, Task, ChatMessage, ChatMember, PrivateMessage } from '../types';
 
 export function normalizeBoard(apiBoard: any): KanbanBoard {
   return {
@@ -65,5 +65,51 @@ export function normalizeTask(apiTask: any): Task {
     estimatedHours: apiTask.estimated_hours,
     actualHours: apiTask.actual_hours,
     assignee: apiTask.assignee_id ? apiTask.assignee_id.toString() : undefined,
+  };
+}
+
+export function normalizeChatMessage(apiMessage: any): ChatMessage {
+  return {
+    id: apiMessage.id.toString(),
+    boardId: apiMessage.board_id.toString(),
+    userId: apiMessage.user_id.toString(),
+    content: apiMessage.content,
+    sender: apiMessage.sender,
+    userName: apiMessage.user_name,
+    avatar: apiMessage.avatar,
+    fileUrl: apiMessage.file_url,
+    fileName: apiMessage.file_name,
+    fileSize: apiMessage.file_size,
+    fileType: apiMessage.file_type,
+    createdAt: new Date(apiMessage.created_at).toISOString(),
+  };
+}
+
+export function normalizeChatMember(apiMember: any): ChatMember {
+  return {
+    userId: apiMember.user_id.toString(),
+    email: apiMember.email,
+    name: apiMember.name,
+    avatar: apiMember.avatar,
+    role: apiMember.role,
+    joinedAt: new Date(apiMember.joined_at).toISOString(),
+    isOnline: apiMember.is_online,
+  };
+}
+
+export function normalizePrivateMessage(apiMessage: any): PrivateMessage {
+  return {
+    id: apiMessage.id.toString(),
+    senderId: apiMessage.sender_id.toString(),
+    recipientId: apiMessage.recipient_id.toString(),
+    content: apiMessage.content,
+    fileUrl: apiMessage.file_url,
+    fileName: apiMessage.file_name,
+    fileSize: apiMessage.file_size,
+    fileType: apiMessage.file_type,
+    isRead: apiMessage.is_read,
+    createdAt: new Date(apiMessage.created_at).toISOString(),
+    sender: normalizeUser(apiMessage.sender),
+    recipient: normalizeUser(apiMessage.recipient),
   };
 } 

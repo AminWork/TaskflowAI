@@ -126,11 +126,32 @@ type ChatMessage struct {
 	UserID    uint      `json:"user_id" gorm:"not null"`
 	Content   string    `json:"content" gorm:"not null"`
 	Sender    string    `json:"sender" gorm:"not null"` // user, ai
+	FileURL   string    `json:"file_url"`
+	FileName  string    `json:"file_name"`
+	FileSize  int64     `json:"file_size"`
+	FileType  string    `json:"file_type"`
 	CreatedAt time.Time `json:"created_at"`
 
 	// Relationships
 	Board Board `json:"board" gorm:"foreignKey:BoardID"`
 	User  User  `json:"user" gorm:"foreignKey:UserID"`
+}
+
+type PrivateMessage struct {
+	ID           uint      `json:"id" gorm:"primaryKey"`
+	SenderID     uint      `json:"sender_id" gorm:"not null"`
+	RecipientID  uint      `json:"recipient_id" gorm:"not null"`
+	Content      string    `json:"content" gorm:"not null"`
+	FileURL      string    `json:"file_url"`
+	FileName     string    `json:"file_name"`
+	FileSize     int64     `json:"file_size"`
+	FileType     string    `json:"file_type"`
+	IsRead       bool      `json:"is_read" gorm:"default:false"`
+	CreatedAt    time.Time `json:"created_at"`
+
+	// Relationships
+	Sender    User `json:"sender" gorm:"foreignKey:SenderID"`
+	Recipient User `json:"recipient" gorm:"foreignKey:RecipientID"`
 }
 
 // Response DTOs
@@ -243,4 +264,29 @@ type UpdateMemberRoleRequest struct {
 type ChatMessageRequest struct {
 	Content string `json:"content" binding:"required,min=1"`
 	Sender  string `json:"sender" binding:"required,oneof=user ai"`
+}
+
+type ChatMessageResponse struct {
+	ID        uint      `json:"id"`
+	BoardID   uint      `json:"board_id"`
+	UserID    uint      `json:"user_id"`
+	Content   string    `json:"content"`
+	Sender    string    `json:"sender"`
+	UserName  string    `json:"user_name"`
+	Avatar    string    `json:"avatar"`
+	FileURL   string    `json:"file_url"`
+	FileName  string    `json:"file_name"`
+	FileSize  int64     `json:"file_size"`
+	FileType  string    `json:"file_type"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ChatMemberResponse struct {
+	UserID   uint      `json:"user_id"`
+	Email    string    `json:"email"`
+	Name     string    `json:"name"`
+	Avatar   string    `json:"avatar"`
+	Role     string    `json:"role"`
+	JoinedAt time.Time `json:"joined_at"`
+	IsOnline bool      `json:"is_online"`
 }
