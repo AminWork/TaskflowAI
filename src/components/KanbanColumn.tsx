@@ -34,34 +34,33 @@ export function KanbanColumn({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-3xl p-6 min-h-[700px] flex flex-col border border-gray-200/50 dark:border-gray-700/50 shadow-xl transition-colors duration-300"
+      className="bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 min-h-[700px] flex flex-col border border-slate-200/50 dark:border-slate-700/50 shadow-lg transition-colors duration-300"
     >
       <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
-          <div className={`w-4 h-4 rounded-full ${column.color} shadow-lg`}></div>
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{column.title}</h2>
+        <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3`}>
+          <h2 className="font-bold text-slate-800 dark:text-slate-200 text-lg">{column.title}</h2>
           <motion.span
             key={tasks.length}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 text-sm px-3 py-1 rounded-full font-bold shadow-sm"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300 text-sm px-3 py-1 rounded-full font-semibold"
           >
             {tasks.length}
           </motion.span>
         </div>
         <motion.button
-          whileHover={{ scale: 1.1 }}
+          whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => onAddTask(column.status)}
-          className="p-3 text-gray-400 dark:text-gray-500 hover:text-white hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+          className="p-2 text-slate-400 dark:text-slate-500 hover:text-white hover:bg-teal-500 rounded-full transition-all duration-300 hover:shadow-lg"
           title={t('task.addTask')}
         >
-          <Plus size={18} />
+          <Plus size={20} />
         </motion.button>
       </div>
       
       <div
-        className="flex-1 space-y-4"
+        className="flex-1 space-y-4 pt-2 -mx-2 px-2 overflow-y-auto"
         onDragOver={onDragOver}
         onDrop={(e) => onDrop(e, column.status)}
       >
@@ -82,10 +81,9 @@ export function KanbanColumn({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center h-40 text-gray-400 dark:text-gray-500 text-sm border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50 transition-colors duration-300"
+            className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500 text-sm border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-slate-50/20 dark:bg-slate-800/20 transition-colors duration-300"
           >
-            <Plus className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-center px-4">
+            <p className="text-center px-4 font-medium">
               {t('task.dropHere')}
             </p>
           </motion.div>

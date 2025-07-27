@@ -215,6 +215,17 @@ func (h *Hub) BroadcastPrivateMessage(recipientID uint, messageType string, data
 	}
 }
 
+// BroadcastTypingNotification sends a typing notification to a specific user
+func (h *Hub) BroadcastTypingNotification(recipientID uint, senderID uint, isTyping bool) {
+	data := map[string]interface{}{
+		"senderId":   senderID,
+		"recipientId": recipientID,
+		"isTyping":    isTyping,
+	}
+	
+	h.BroadcastPrivateMessage(recipientID, "typing", data)
+}
+
 // IsUserOnlineAnywhere checks if a user is currently connected (regardless of board)
 func (h *Hub) IsUserOnlineAnywhere(userID uint) bool {
 	for client := range h.clients {

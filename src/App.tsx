@@ -3,28 +3,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Task, Column, KanbanBoard, Permission } from './types';
 import { useLanguage } from './contexts/LanguageContext';
 import { useNotifications } from './contexts/NotificationContext';
-import { KanbanColumn } from './components/KanbanColumn';
 import { TaskForm } from './components/TaskForm';
 import { AIAssistant } from './components/AIAssistant';
-import { SearchAndFilter } from './components/SearchAndFilter';
 import { AuthForm } from './components/AuthForm';
 import { Navigation } from './components/Navigation';
-import { Analytics } from './components/Analytics';
-import { MemberManagement } from './components/MemberManagement';
 import { BoardForm } from './components/BoardForm';
 import { BoardDashboard } from './components/BoardDashboard';
 import { QuickInviteModal } from './components/QuickInviteModal';
 import { InviteNotifications } from './components/InviteNotifications';
-import { useLocalStorage } from './hooks/useLocalStorage';
 import { useAuth } from './hooks/useAuth';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useBoards } from './hooks/useBoards';
 import { useTasks } from './hooks/useTasks';
 import { ChatWindow } from './components/Chat/ChatWindow';
 import { ConversationsList } from './components/PrivateMessages/ConversationsList';
+import { MainContent } from './components/MainContent';
 import { migrateLocalStorageKeys } from './utils/migrateLocalStorage';
 import { useWebSocket } from './hooks/useWebSocket';
-import { Plus, Sparkles, MessageCircle, Mail } from 'lucide-react';
+import { MessageCircle, Mail } from 'lucide-react';
 
 function App() {
   // Run localStorage migration on app start
@@ -36,9 +32,9 @@ function App() {
   const { unreadMessages, requestNotificationPermission } = useNotifications();
 
 const columns: Column[] = [
-    { id: '1', title: t('task.todo'), status: 'todo', color: 'bg-blue-500' },
-    { id: '2', title: t('task.inprogress'), status: 'inprogress', color: 'bg-yellow-500' },
-    { id: '3', title: t('task.done'), status: 'done', color: 'bg-green-500' },
+    { id: '1', title: t('task.todo'), status: 'todo', color: 'bg-slate-100 dark:bg-slate-700' },
+    { id: '2', title: t('task.inprogress'), status: 'inprogress', color: 'bg-slate-200 dark:bg-slate-600' },
+    { id: '3', title: t('task.done'), status: 'done', color: 'bg-slate-300 dark:bg-slate-500' },
 ];
 
   const { user, token, isLoading, login, register, logout, isAuthenticated } = useAuth();
@@ -72,7 +68,7 @@ const columns: Column[] = [
     deleteTask,
     moveTask,
   } = useTasks(currentBoard?.id || null, token);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'analytics' | 'members'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar'>('dashboard');
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isBoardFormOpen, setIsBoardFormOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<KanbanBoard | undefined>();
@@ -82,12 +78,6 @@ const columns: Column[] = [
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPrivateMessagesOpen, setIsPrivateMessagesOpen] = useState(false);
-  
-  // Search and filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<Task['priority'] | 'all'>('all');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [assigneeFilter, setAssigneeFilter] = useState('');
 
   // Analytics
   const analytics = useAnalytics(tasks);
@@ -98,29 +88,13 @@ const columns: Column[] = [
       setCurrentBoard(boards[0]);
     }
   }, [boards, currentBoard, setCurrentBoard]);
-  
   // Connect to WebSocket for private messages
   useWebSocket({
     messageTypes: ['private_message'],
   });
 
-  // Get unique categories for filter dropdown
-  const categories = Array.from(new Set(tasks.map(task => task.category).filter(Boolean)));
-
-  // Filter tasks based on search and filter criteria
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         task.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-    const matchesCategory = !categoryFilter || task.category === categoryFilter;
-    const matchesAssignee = !assigneeFilter || 
-                           (assigneeFilter === 'unassigned' && !task.assignee) ||
-                           (assigneeFilter !== 'unassigned' && task.assignee === assigneeFilter);
-    
-    return matchesSearch && matchesPriority && matchesCategory && matchesAssignee;
-  });
+  // TODO: Re-implement filtering logic if needed
+  const filteredTasks = tasks;
 
   const handleAddTask = (status: Task['status']) => {
     if (!currentBoard || !hasPermission(currentBoard.id, 'create_task')) {
@@ -187,7 +161,7 @@ const columns: Column[] = [
   const handleCreateBoard = async (title: string, description?: string) => {
     const newBoard = await createBoard(title, description);
     if (newBoard) {
-    setIsBoardFormOpen(false);
+      setIsBoardFormOpen(false);
       setEditingBoard(undefined);
       setCurrentView('kanban');
     }
@@ -203,11 +177,7 @@ const columns: Column[] = [
     setCurrentView('kanban');
   };
 
-  const handleViewChange = (view: 'dashboard' | 'kanban' | 'analytics' | 'members') => {
-    if (!currentBoard && view !== 'dashboard' && view !== 'kanban') {
-      alert(t('auth.selectBoard'));
-      return;
-    }
+  const handleViewChange = (view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar') => {
     setCurrentView(view);
   };
 
@@ -244,7 +214,7 @@ const columns: Column[] = [
                   key={language} // Add key to force re-render on language change
                   user={user!}
                   currentView={currentView}
-                  onViewChange={handleViewChange}
+                  onViewChange={(view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar') => handleViewChange(view)}
                   onLogout={logout}
                   boards={boards}
                   currentBoard={currentBoard}
@@ -276,11 +246,12 @@ const columns: Column[] = [
                 
                 {/* Quick Invite Modal */}
                 <QuickInviteModal
-                  isOpen={isInviteModalOpen}
-                  onClose={() => setIsInviteModalOpen(false)}
-                  boards={boards}
-                  onInviteUser={handleInviteUsers}
-                />
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          onInviteUser={handleInviteUsers}
+          boards={boards}
+          currentBoardId={currentBoard?.id}
+        />
         
         <BoardForm
                   board={editingBoard}
@@ -303,14 +274,17 @@ const columns: Column[] = [
                 key={language} // Add key to force re-render on language change
         user={user!}
         currentView={currentView}
-        onViewChange={handleViewChange}
+        onViewChange={(view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar') => handleViewChange(view)}
         onLogout={logout}
         boards={boards}
         currentBoard={currentBoard}
-        onBoardSelect={setCurrentBoard}
-        onCreateBoard={() => setIsBoardFormOpen(true)}
+        onBoardSelect={handleSelectBoard}
+        onCreateBoard={() => {
+            setEditingBoard(undefined);
+            setIsBoardFormOpen(true);
+          }}
                 onInviteUsers={() => setIsInviteModalOpen(true)}
-                invitationCount={invitations.filter(inv => inv.status === 'pending').length}
+                invitationCount={invitations.length}
               />
 
               {/* Private Messages Toggle Button */}
@@ -319,7 +293,7 @@ const columns: Column[] = [
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsPrivateMessagesOpen(!isPrivateMessagesOpen)}
-                className={`fixed ${isRTL ? 'left-6' : 'right-6'} bottom-24 p-4 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40`}
+                className={`fixed ${isRTL ? 'right-6' : 'left-6'} bottom-8 p-4 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40`}
                 title="Private Messages"
               >
                 <Mail size={24} />
@@ -346,11 +320,18 @@ const columns: Column[] = [
               {/* Private Messages */}
               <AnimatePresence>
                 {isPrivateMessagesOpen && user && (
-                  <ConversationsList
-                    currentUser={user}
-                    isOpen={isPrivateMessagesOpen}
-                    onClose={() => setIsPrivateMessagesOpen(false)}
-                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 50 }}
+                    className={`fixed bottom-24 ${isRTL ? 'right-8' : 'left-8'} z-50`}
+                  >
+                    <ConversationsList
+                      currentUser={user}
+                      isOpen={isPrivateMessagesOpen}
+                      onClose={() => setIsPrivateMessagesOpen(false)}
+                    />
+                  </motion.div>
                 )}
               </AnimatePresence>
 
@@ -367,124 +348,42 @@ const columns: Column[] = [
               </AnimatePresence>
 
       <div className="container mx-auto px-4 py-8">
-        <AnimatePresence mode="wait">
-          {currentView === 'kanban' ? (
-            <motion.div
-              key="kanban"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Header */}
-              {currentBoard && (
-                <div className="text-center mb-8">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-center space-x-3 mb-4"
-                  >
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      {currentBoard.title}
-                    </h1>
-                    <Sparkles size={32} className="text-purple-500" />
-                  </motion.div>
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-gray-600 text-lg"
-                  >
-                    {currentBoard.description || 'Manage your tasks with AI assistance and voice commands'}
-                  </motion.p>
-                </div>
-              )}
-
-              {currentBoard && (
-                <>
-                  {/* Search and Filter */}
-                  <SearchAndFilter
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    priorityFilter={priorityFilter}
-                    onPriorityFilterChange={setPriorityFilter}
-                    categoryFilter={categoryFilter}
-                    onCategoryFilterChange={setCategoryFilter}
-                    categories={categories}
-                            assigneeFilter={assigneeFilter}
-                            onAssigneeFilterChange={setAssigneeFilter}
-                            boardMembers={currentBoard?.members}
-                  />
-
-                  {/* Quick Add Button */}
-                  {hasPermission(currentBoard.id, 'create_task') && (
-                    <div className="flex justify-center mb-8">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleAddTask('todo')}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center space-x-3 text-lg font-semibold"
-                      >
-                        <Plus size={24} />
-                        <span>Create New Task</span>
-                      </motion.button>
-                    </div>
-                  )}
-
-                  {/* Kanban Board */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {columns.map((column, index) => (
-                      <motion.div
-                        key={column.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <KanbanColumn
-                          column={column}
-                          tasks={filteredTasks.filter(task => task.status === column.status)}
-                          onAddTask={handleAddTask}
-                          onDeleteTask={handleDeleteTask}
-                          onEditTask={handleEditTask}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          onDragStart={handleDragStart}
-                                  boardMembers={currentBoard?.members}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="analytics"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {currentView === 'analytics' ? (
-                <Analytics analytics={analytics} />
-              ) : (
-                currentBoard && (
-                  <MemberManagement
-                    board={currentBoard}
-                    invitations={invitations}
-                    currentUser={user!}
-                    onInviteUser={(email, role) => inviteUser(currentBoard.id, email, role)}
-                    onRemoveMember={(userId) => removeMember(currentBoard.id, userId)}
-                    onUpdateRole={(userId, role) => updateMemberRole(currentBoard.id, userId, role)}
-                    onAcceptInvitation={acceptInvitation}
-                    onDeclineInvitation={declineInvitation}
-                            hasPermission={(action) => hasPermission(currentBoard.id, action as Permission['action'])}
-                  />
-                )
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {currentBoard ? (
+            <MainContent
+                currentView={currentView}
+                currentBoard={currentBoard}
+                boards={boards}
+                onSelectBoard={handleSelectBoard}
+                onDeleteBoard={deleteBoard}
+                hasPermission={(action) => hasPermission(currentBoard!.id, action as Permission['action'])}
+                columns={columns}
+                filteredTasks={filteredTasks}
+                handleAddTask={handleAddTask}
+                handleDeleteTask={handleDeleteTask}
+                handleEditTask={handleEditTask}
+                handleDragOver={handleDragOver}
+                handleDrop={handleDrop}
+                handleDragStart={handleDragStart}
+                analytics={analytics}
+                user={user!}
+                invitations={invitations}
+                inviteUser={inviteUser}
+                removeMember={removeMember}
+                updateMemberRole={updateMemberRole}
+                acceptInvitation={acceptInvitation}
+                declineInvitation={declineInvitation}
+            />
+        ) : (
+            <BoardDashboard
+                boards={boards}
+                currentUser={user!}
+                onBoardSelect={handleSelectBoard}
+                onCreateBoard={() => setIsBoardFormOpen(true)}
+                onDeleteBoard={deleteBoard}
+                onEditBoard={handleEditBoard}
+                onInviteUsers={() => setIsInviteModalOpen(true)}
+            />
+        )}
 
         {/* Task Form Modal */}
         <TaskForm
@@ -493,17 +392,17 @@ const columns: Column[] = [
           onClose={() => setIsTaskFormOpen(false)}
           onSave={handleSaveTask}
           defaultStatus={defaultStatus}
-                  boardMembers={currentBoard?.members}
+          boardMembers={currentBoard?.members}
         />
         
         {/* Board Form Modal */}
         <BoardForm
-                  board={editingBoard}
+          board={editingBoard}
           isOpen={isBoardFormOpen}
-                  onClose={() => {
-                    setIsBoardFormOpen(false);
-                    setEditingBoard(undefined);
-                  }}
+          onClose={() => {
+            setIsBoardFormOpen(false);
+            setEditingBoard(undefined);
+          }}
           onSave={handleCreateBoard}
         />
 

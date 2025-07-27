@@ -15,10 +15,10 @@ interface TaskCardProps {
 export function TaskCard({ task, onDelete, onEdit, onDragStart, boardMembers = [] }: TaskCardProps) {
   const { t, isRTL } = useLanguage();
   
-  const priorityColors = {
-    low: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700',
-    medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700',
-    high: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700',
+  const priorityStyles = {
+    low: 'text-slate-500 dark:text-slate-400',
+    medium: 'text-yellow-600 dark:text-yellow-400 font-semibold',
+    high: 'text-red-600 dark:text-red-500 font-bold',
   };
 
   const assignedMember = task.assignee ? boardMembers.find(m => m.userId === task.assignee) : null;
@@ -28,103 +28,97 @@ export function TaskCard({ task, onDelete, onEdit, onDragStart, boardMembers = [
   };
 
   return (
-    <div
-      className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-5 cursor-move hover:shadow-xl transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 animate-in slide-in-from-bottom-4 fade-in"
-      draggable
-      onDragStart={handleDragStart}
-    >
-      {/* Gradient border effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-400/10 dark:to-purple-400/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
-      <div className="relative">
-        {/* Header */}
-        <div className={`flex items-start justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight pr-2">
-            {task.title}
-          </h3>
-          <div className={`flex ${isRTL ? 'space-x-reverse' : ''} space-x-1 opacity-0 group-hover:opacity-100 transition-opacity`}>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onEdit(task)}
-              className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
-              title={t('task.editTask')}
-            >
-              <Edit size={14} />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onDelete(task.id)}
-              className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
-              title={t('common.delete')}
-            >
-              <Trash2 size={14} />
-            </motion.button>
-          </div>
-        </div>
-        
-        {/* Description */}
-        {task.description && (
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-            {task.description}
-          </p>
-        )}
-
-        {/* Priority and Category */}
-        <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2 mb-4`}>
-          <span className={`px-2 py-1 rounded-md text-xs font-medium border ${priorityColors[task.priority]}`}>
-            {t(`priority.${task.priority}`)}
-          </span>
-          {task.category && (
-            <span className="px-2 py-1 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
-              {task.category}
-            </span>
-        )}
-        </div>
-
-        {/* Tags */}
-        {task.tags && task.tags.length > 0 && (
-          <div className={`flex flex-wrap gap-1 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {task.tags.map((tag, index) => (
-            <span
-              key={index}
-                className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-lg border border-blue-200 dark:border-blue-700"
-            >
-                #{tag}
-            </span>
-          ))}
-        </div>
-        )}
-
-        {/* Footer */}
-        <div className={`flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
-            {assignedMember ? (
-              <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
-                <img
-                  src={assignedMember.avatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop&crop=face`}
-                  alt={assignedMember.name}
-                  className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-700 shadow-sm"
-                />
-                <span className="font-medium">{assignedMember.name}</span>
-              </div>
-            ) : (
-              <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-1 text-gray-400 dark:text-gray-500`}>
-                <User size={12} />
-                <span>{t('task.unassigned')}</span>
-              </div>
-            )}
+    <div draggable onDragStart={handleDragStart} className="cursor-move">
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-700/80 p-5 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 group relative hover:-translate-y-1"
+      >
+        <div className="relative">
+          {/* Header */}
+          <div className={`flex items-start justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-base leading-tight pr-2">
+              {task.title}
+            </h3>
+            <div className={`flex ${isRTL ? 'space-x-reverse' : ''} space-x-1`}>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => onEdit(task)}
+                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-slate-700/50 rounded-md transition-all"
+                title={t('task.editTask')}
+              >
+                <Edit size={16} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => onDelete(task.id)}
+                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700/50 rounded-md transition-all"
+                title={t('common.delete')}
+              >
+                <Trash2 size={16} />
+              </motion.button>
+            </div>
           </div>
           
-          {task.estimatedHours && (
-            <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-1`}>
-              <Clock size={12} />
-              <span>{task.estimatedHours}h</span>
-          </div>
+          {/* Description */}
+          {task.description && (
+            <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">
+              {task.description}
+            </p>
           )}
+
+          {/* Tags */}
+          {task.tags && task.tags.length > 0 && (
+            <div className={`flex flex-wrap gap-2 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              {task.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-2.5 py-1 bg-teal-100/70 dark:bg-teal-900/70 text-teal-800 dark:text-teal-200 text-xs rounded-full font-medium"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className={`flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+              {assignedMember ? (
+                <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+                  <img
+                    src={assignedMember.avatar || `https://i.pravatar.cc/24?u=${assignedMember.userId}`}
+                    alt={assignedMember.name}
+                    className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-700 shadow-sm"
+                  />
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{assignedMember.name}</span>
+                </div>
+              ) : (
+                <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2 text-slate-400 dark:text-slate-500`}>
+                  <User size={14} />
+                  <span>{t('task.unassigned')}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-4`}>
+              {task.estimatedHours && (
+                <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-1.5`}>
+                  <Clock size={14} />
+                  <span className="font-medium">{task.estimatedHours}h</span>
+                </div>
+              )}
+              <div className={`px-2 py-1 rounded-md text-xs font-medium ${priorityStyles[task.priority]}`}>
+                {t(`priority.${task.priority}`)}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

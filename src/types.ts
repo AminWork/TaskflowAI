@@ -21,7 +21,7 @@ export interface Column {
 }
 
 export interface User {
-  id: string;
+  id: number;
   email: string;
   name: string;
   avatar?: string;
@@ -101,7 +101,7 @@ export interface ChatMember {
 }
 
 export interface SearchUser {
-  id: string;
+  id: number;
   email: string;
   name: string;
   avatar?: string;
@@ -111,8 +111,8 @@ export interface SearchUser {
 // Private message types
 export interface PrivateMessage {
   id: string;
-  senderId: string;
-  recipientId: string;
+  senderId: number;
+  recipientId: number;
   content: string;
   fileUrl?: string;
   fileName?: string;
@@ -125,7 +125,7 @@ export interface PrivateMessage {
 }
 
 export interface PrivateConversation {
-  userId: string;
+  userId: number;
   userName: string;
   userEmail: string;
   avatar?: string;

@@ -30,8 +30,13 @@ func (h *PrivateMessageHandler) SendPrivateMessage(c *gin.Context) {
 		Content     string `json:"content" binding:"required"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+		if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Message content cannot be empty"})
 		return
 	}
 
@@ -87,40 +92,32 @@ func (h *PrivateMessageHandler) GetConversations(c *gin.Context) {
 		UnreadCount int64   `json:"unread_count"`
 	}
 
-	// Complex query to get conversation summaries
-	subQuery := database.GetDB().Table("private_messages").
-		Select(`
-			CASE 
-				WHEN sender_id = ? THEN recipient_id 
-				ELSE sender_id 
-			END as other_user_id,
-			MAX(created_at) as last_message_time
-		`, userID).
-		Where("sender_id = ? OR recipient_id = ?", userID, userID).
-		Group("other_user_id")
-
-	err := database.GetDB().Table("(?) as conv", subQuery).
-		Select(`
-			u.id as user_id,
-			u.name as user_name,
-			u.email as user_email,
-			u.avatar as avatar,
-			pm.content as last_message,
-			pm.created_at as last_message_time,
-			COALESCE(unread.count, 0) as unread_count
-		`).
-		Joins("JOIN users u ON u.id = conv.other_user_id").
-		Joins(`JOIN private_messages pm ON pm.created_at = conv.last_message_time AND 
-			((pm.sender_id = ? AND pm.recipient_id = conv.other_user_id) OR 
-			 (pm.recipient_id = ? AND pm.sender_id = conv.other_user_id))`, userID, userID).
-		Joins(`LEFT JOIN (
-			SELECT sender_id, COUNT(*) as count 
-			FROM private_messages 
-			WHERE recipient_id = ? AND is_read = false 
-			GROUP BY sender_id
-		) unread ON unread.sender_id = conv.other_user_id`, userID).
-		Order("last_message_time DESC").
-		Scan(&conversations).Error
+	// Simpler, more robust query to get conversation summaries
+	err := database.GetDB().Raw(`
+		WITH conversation_candidates AS (
+            SELECT 
+                CASE WHEN sender_id = @user_id THEN recipient_id ELSE sender_id END AS other_user_id,
+                created_at
+            FROM private_messages
+            WHERE sender_id = @user_id OR recipient_id = @user_id
+        ), latest AS (
+            SELECT other_user_id, MAX(created_at) AS last_time
+            FROM conversation_candidates
+            GROUP BY other_user_id
+        )
+        SELECT 
+            u.id AS user_id,
+            u.name AS user_name,
+            u.email AS user_email,
+            u.avatar AS avatar,
+            pm.content AS last_message,
+            pm.created_at AS last_message_time,
+            (SELECT COUNT(*) FROM private_messages WHERE sender_id = l.other_user_id AND recipient_id = @user_id AND is_read = false) AS unread_count
+        FROM latest l
+        JOIN users u ON u.id = l.other_user_id
+        JOIN private_messages pm ON ((pm.sender_id = @user_id AND pm.recipient_id = l.other_user_id) OR (pm.recipient_id = @user_id AND pm.sender_id = l.other_user_id)) AND pm.created_at = l.last_time
+        ORDER BY last_message_time DESC
+	`, map[string]interface{}{"user_id": userID}).Scan(&conversations).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get conversations"})

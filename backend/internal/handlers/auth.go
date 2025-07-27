@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"kanban-backend/internal/auth"
 	"kanban-backend/internal/database"
@@ -115,6 +116,31 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	userID := c.GetUint("user_id")
+
+	var user models.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	userResponse := models.UserResponse{
+		ID:        user.ID,
+		Email:     user.Email,
+		Name:      user.Name,
+		Avatar:    user.Avatar,
+		CreatedAt: user.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, userResponse)
+}
+
+// GetUser retrieves a user's public profile by ID
+func (h *AuthHandler) GetUser(c *gin.Context) {
+	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
 
 	var user models.User
 	if err := database.GetDB().First(&user, userID).Error; err != nil {

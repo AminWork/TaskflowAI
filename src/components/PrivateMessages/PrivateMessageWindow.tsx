@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, X, Paperclip, Image, File } from 'lucide-react';
+import { Send, X, Paperclip } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useWebSocket } from '../../hooks/useWebSocket';
 import { PrivateMessage, User } from '../../types';
 import { normalizePrivateMessage } from '../../utils/normalize';
 
@@ -14,12 +15,11 @@ interface PrivateMessageWindowProps {
 }
 
 export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }: PrivateMessageWindowProps) {
-  const { t, isRTL } = useLanguage();
+  const { t } = useLanguage();
   const { resetUnreadCount } = useNotifications();
+  const { sendMessage: sendWebSocketMessage, sendTyping, typingUsers } = useWebSocket({ messageTypes: ['private_message', 'typing'] });
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +38,7 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
     if (isOpen && recipient) {
       loadMessages();
       markAsRead();
-      resetUnreadCount(recipient.id); // Reset unread count for this conversation
+      resetUnreadCount(String(recipient.id)); // Reset unread count for this conversation
     }
   }, [isOpen, recipient]);
 
@@ -46,7 +46,7 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
     try {
       const tokenStr = localStorage.getItem('kanban-token');
       const token = tokenStr ? JSON.parse(tokenStr) : null;
-      const response = await fetch(`/api/private-messages/users/${recipient.id}`, {
+      const response = await fetch(`/api/private-messages/users/${String(recipient.id)}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -64,7 +64,7 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
     try {
       const tokenStr = localStorage.getItem('kanban-token');
       const token = tokenStr ? JSON.parse(tokenStr) : null;
-      await fetch(`/api/private-messages/users/${recipient.id}/read`, {
+            await fetch(`/api/private-messages/users/${recipient.id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -74,41 +74,71 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || isLoading) return;
+    if (!newMessage.trim()) return;
 
-    setIsLoading(true);
-    try {
-      const tokenStr = localStorage.getItem('kanban-token');
-      const token = tokenStr ? JSON.parse(tokenStr) : null;
+    // Send message through WebSocket
+    const success = sendWebSocketMessage('private_message', {
+      recipient_id: recipient.id,
+      content: newMessage.trim(),
+    });
+
+    if (success) {
+      // Create a temporary message for immediate UI update
+      const tempMessage: PrivateMessage = {
+        id: Date.now().toString(), // Temporary ID as string
+        senderId: currentUser.id,
+        recipientId: recipient.id,
+        content: newMessage.trim(),
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        sender: currentUser,
+        recipient: recipient
+      };
       
-      const response = await fetch('/api/private-messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          recipient_id: parseInt(recipient.id),
-          content: newMessage.trim(),
-        }),
-      });
+      setMessages(prev => [...prev, tempMessage]);
+      setNewMessage('');
+      inputRef.current?.focus();
+      
+      // Send typing indicator that we've stopped typing
+      sendTyping(recipient.id, false);
+    } else {
+      // Fallback to REST API if WebSocket fails
+      try {
+        const tokenStr = localStorage.getItem('kanban-token');
+        const token = tokenStr ? JSON.parse(tokenStr) : null;
+        
+        const response = await fetch('/api/private-messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            recipient_id: recipient.id,
+            content: newMessage.trim(),
+          }),
+        });
 
-      if (response.ok) {
-        const rawMessage = await response.json();
-        const normalizedMessage = normalizePrivateMessage(rawMessage);
-        setMessages(prev => [...prev, normalizedMessage]);
-        setNewMessage('');
-        inputRef.current?.focus();
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to send message:', errorData);
+        if (response.ok) {
+          const rawMessage = await response.json();
+          const normalizedMessage = normalizePrivateMessage(rawMessage);
+          // Replace the temporary message with the real one
+          setMessages(prev => [...prev.slice(0, -1), normalizedMessage]);
+          setNewMessage('');
+          inputRef.current?.focus();
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to send message:', errorData);
+          alert(t('chat.sendError'));
+          // Remove the temporary message if sending failed
+          setMessages(prev => prev.slice(0, -1));
+        }
+      } catch (error) {
+        console.error('Failed to send message:', error);
         alert(t('chat.sendError'));
+        // Remove the temporary message if sending failed
+        setMessages(prev => prev.slice(0, -1));
       }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      alert(t('chat.sendError'));
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -123,11 +153,8 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
     const value = e.target.value;
     setNewMessage(value);
     
-    // Show typing indicator to recipient
-    if (value && !isTyping) {
-      setIsTyping(true);
-      // TODO: Send typing indicator through WebSocket
-    }
+    // Send typing indicator to recipient
+    sendTyping(recipient.id, true);
     
     // Clear existing timeout
     if (typingTimeout) {
@@ -136,8 +163,7 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
     
     // Set new timeout to stop typing indicator
     const newTimeout = window.setTimeout(() => {
-      setIsTyping(false);
-      // TODO: Send stopped typing indicator through WebSocket
+      sendTyping(recipient.id, false);
     }, 1500);
     
     setTypingTimeout(newTimeout);
@@ -253,7 +279,7 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
           )}
           
           {/* Typing indicator */}
-          {isTyping && (
+          {typingUsers[recipient.id] && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -293,7 +319,7 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
                 style={{
                   boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.06)'
                 }}
-                disabled={isLoading}
+                disabled={false}
               />
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                 <motion.button
@@ -311,10 +337,10 @@ export function PrivateMessageWindow({ recipient, currentUser, isOpen, onClose }
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={sendMessage}
-              disabled={!newMessage.trim() || isLoading}
+              disabled={!newMessage.trim()}
               className="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
               style={{
-                background: (!newMessage.trim()) || isLoading 
+                background: !newMessage.trim() 
                   ? '#d1d5db' 
                   : 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)'
               }}

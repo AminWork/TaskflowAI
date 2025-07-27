@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"strconv"
 
@@ -77,6 +78,12 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			// User routes
+			users := protected.Group("/users")
+			{
+				users.GET("/:id", authHandler.GetUser)
+			}
+
 			// Board routes
 			boards := protected.Group("/boards")
 			{
@@ -133,6 +140,15 @@ func main() {
 				privateMessages.GET("/unread-counts", privateMessageHandler.GetUnreadCounts)
 			}
 
+			// Appointment routes
+			appointments := protected.Group("/appointments")
+			{
+				appointments.GET("", handlers.GetAppointments)
+				appointments.POST("", handlers.CreateAppointment)
+				appointments.PUT("/:id", handlers.UpdateAppointment)
+				appointments.DELETE("/:id", handlers.DeleteAppointment)
+			}
+
 			// WebSocket routes
 			protected.GET("/ws/:id", func(c *gin.Context) {
 				boardID, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -149,6 +165,26 @@ func main() {
 				// No board ID for private messages, just use user ID
 				c.Set("board_id", uint(0)) // Use 0 as a special value for private messages
 				hub.HandleWebSocket(c)
+			})
+
+			// WebSocket route for typing notifications
+			protected.POST("/private-messages/typing", func(c *gin.Context) {
+				userID := middleware.GetUserID(c)
+				
+				var req struct {
+					RecipientID uint `json:"recipient_id" binding:"required"`
+					IsTyping    bool `json:"is_typing"`
+				}
+
+				if err := c.ShouldBindJSON(&req); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
+
+				// Broadcast typing notification
+				hub.BroadcastTypingNotification(req.RecipientID, userID, req.IsTyping)
+
+				c.JSON(http.StatusOK, gin.H{"message": "Typing notification sent"})
 			})
 		}
 	}

@@ -55,6 +55,7 @@ func InitDatabase() {
 		&models.Invitation{},
 		&models.ChatMessage{},
 		&models.PrivateMessage{},
+		&models.Appointment{},
 	)
 	if err != nil {
 		logger.Log.Fatalf("Failed to migrate database: %v", err)

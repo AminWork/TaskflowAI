@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MessageCircle, X, Plus, Bell } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { PrivateConversation, User } from '../../types';
 import { PrivateMessageWindow } from './PrivateMessageWindow';
@@ -14,23 +13,20 @@ interface ConversationsListProps {
 }
 
 export function ConversationsList({ currentUser, isOpen, onClose }: ConversationsListProps) {
-  const { t } = useLanguage();
-  const { resetUnreadCount, requestNotificationPermission } = useNotifications();
+  const { requestNotificationPermission } = useNotifications();
   const [conversations, setConversations] = useState<PrivateConversation[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserSearch, setShowUserSearch] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Load conversations when component opens
+  const [isConversationsLoading, setIsConversationsLoading] = useState(true);
   useEffect(() => {
     if (isOpen) {
       loadConversations();
       requestNotificationPermission(); // Request notification permission when opening conversations
     }
-  }, [isOpen, requestNotificationPermission]);
+  }, [isOpen]);
 
   const loadConversations = async () => {
-    setIsLoading(true);
+    setIsConversationsLoading(true);
     try {
       const tokenStr = localStorage.getItem('kanban-token');
       const token = tokenStr ? JSON.parse(tokenStr) : null;
@@ -40,12 +36,21 @@ export function ConversationsList({ currentUser, isOpen, onClose }: Conversation
 
       if (response.ok) {
         const data = await response.json();
-        setConversations(data.conversations || []);
+        const convs: PrivateConversation[] = (data.conversations || []).map((c: any) => ({
+          userId: c.user_id,
+          userName: c.user_name,
+          userEmail: c.user_email,
+          avatar: c.avatar,
+          lastMessage: c.last_message,
+          lastMessageTime: c.last_message_time,
+          unreadCount: c.unread_count
+        }));
+        setConversations(convs);
       }
     } catch (error) {
       console.error('Failed to load conversations:', error);
     } finally {
-      setIsLoading(false);
+      setIsConversationsLoading(false);
     }
   };
 
@@ -163,7 +168,7 @@ export function ConversationsList({ currentUser, isOpen, onClose }: Conversation
               background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
             }}
           >
-            {isLoading ? (
+            {isConversationsLoading ? (
               <div className="flex items-center justify-center p-12">
                 <div className="animate-spin rounded-full h-10 w-10 border-3 border-green-500 border-t-transparent"></div>
               </div>
@@ -208,11 +213,11 @@ export function ConversationsList({ currentUser, isOpen, onClose }: Conversation
                             {conversation.userName}
                           </p>
                           <p className="text-xs text-gray-400 font-medium">
-                            {formatTime(conversation.lastMessageTime)}
+                            {conversation.lastMessageTime ? formatTime(conversation.lastMessageTime) : ''}
                           </p>
                         </div>
                         <p className="text-sm text-gray-500 truncate leading-relaxed">
-                          {conversation.lastMessage}
+                          {conversation.lastMessage || 'No messages yet'}
                         </p>
                       </div>
                     </div>

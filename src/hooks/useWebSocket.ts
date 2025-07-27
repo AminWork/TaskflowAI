@@ -8,9 +8,16 @@ interface UseWebSocketProps {
   messageTypes?: string[];
 }
 
+interface TypingNotificationData {
+  senderId: number;
+  recipientId: number;
+  isTyping: boolean;
+}
+
 export function useWebSocket({ boardId, onMessage, messageTypes = [] }: UseWebSocketProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
+  const [typingUsers, setTypingUsers] = useState<Record<number, boolean>>({});
   const socket = useRef<WebSocket | null>(null);
   const { token, user } = useAuth();
   const { increaseUnreadCount, playNotificationSound } = useNotifications();
@@ -53,7 +60,7 @@ export function useWebSocket({ boardId, onMessage, messageTypes = [] }: UseWebSo
           const msgData = data.data;
           
           // If not the sender of this message, show notification
-          if (msgData.sender_id !== parseInt(user?.id || '0')) {
+          if (msgData.sender_id !== parseInt(user?.id ? user.id.toString() : '0')) {
             // Increase unread message count
             increaseUnreadCount(msgData.sender_id.toString());
             
@@ -67,6 +74,29 @@ export function useWebSocket({ boardId, onMessage, messageTypes = [] }: UseWebSo
                 body: `${senderName}: ${msgData.content}`,
                 icon: msgData.sender?.avatar || '/favicon.ico'
               });
+            }
+          }
+        }
+        
+        // Handle typing notifications
+        if (data.type === 'typing' && data.data) {
+          const typingData: TypingNotificationData = data.data;
+          
+          // Only process typing notifications for the current user as recipient
+          if (typingData.recipientId === parseInt(user?.id ? user.id.toString() : '0')) {
+            setTypingUsers(prev => ({
+              ...prev,
+              [typingData.senderId]: typingData.isTyping
+            }));
+            
+            // Auto-reset typing status after 3 seconds
+            if (typingData.isTyping) {
+              setTimeout(() => {
+                setTypingUsers(prev => ({
+                  ...prev,
+                  [typingData.senderId]: false
+                }));
+              }, 3000);
             }
           }
         }
@@ -110,7 +140,7 @@ export function useWebSocket({ boardId, onMessage, messageTypes = [] }: UseWebSo
       const message = {
         type,
         data,
-        boardId: boardId ? parseInt(boardId) : undefined,
+        boardId: boardId ? parseInt(boardId, 10) : undefined,
       };
       socket.current.send(JSON.stringify(message));
       return true;
@@ -118,9 +148,33 @@ export function useWebSocket({ boardId, onMessage, messageTypes = [] }: UseWebSo
     return false;
   };
   
+  // Send typing notification
+  const sendTyping = async (recipientId: number, isTyping: boolean) => {
+    try {
+      const response = await fetch('/api/private-messages/typing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          recipient_id: recipientId,
+          is_typing: isTyping
+        })
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error('Failed to send typing notification:', error);
+      return false;
+    }
+  };
+  
   return {
     isConnected,
     lastMessage,
-    sendMessage
+    typingUsers,
+    sendMessage,
+    sendTyping
   };
 } 

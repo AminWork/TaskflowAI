@@ -142,16 +142,26 @@ type PrivateMessage struct {
 	SenderID     uint      `json:"sender_id" gorm:"not null"`
 	RecipientID  uint      `json:"recipient_id" gorm:"not null"`
 	Content      string    `json:"content" gorm:"not null"`
-	FileURL      string    `json:"file_url"`
-	FileName     string    `json:"file_name"`
-	FileSize     int64     `json:"file_size"`
-	FileType     string    `json:"file_type"`
+	Attachment   string    `json:"attachment"` // URL to the attachment
 	IsRead       bool      `json:"is_read" gorm:"default:false"`
 	CreatedAt    time.Time `json:"created_at"`
 
 	// Relationships
 	Sender    User `json:"sender" gorm:"foreignKey:SenderID"`
 	Recipient User `json:"recipient" gorm:"foreignKey:RecipientID"`
+}
+
+type Appointment struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	Title     string    `json:"title" gorm:"not null"`
+	Start     time.Time `json:"start" gorm:"not null"`
+	End       time.Time `json:"end" gorm:"not null"`
+	UserID    uint      `json:"user_id" gorm:"not null"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// Relationships
+	User User `json:"user" gorm:"foreignKey:UserID"`
 }
 
 // Response DTOs
@@ -207,6 +217,14 @@ type TaskResponse struct {
 	Tags           []string  `json:"tags"`
 }
 
+type AppointmentResponse struct {
+	ID    uint      `json:"id"`
+	Title string    `json:"title"`
+	Start time.Time `json:"start"`
+	End   time.Time `json:"end"`
+	UserID uint   `json:"user_id"`
+}
+
 // Request DTOs
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
@@ -255,6 +273,18 @@ type UpdateTaskRequest struct {
 	EstimatedHours *float64 `json:"estimated_hours"`
 	ActualHours    *float64 `json:"actual_hours"`
 	Tags           []string `json:"tags"`
+}
+
+type CreateAppointmentRequest struct {
+	Title string    `json:"title" binding:"required"`
+	Start time.Time `json:"start" binding:"required"`
+	End   time.Time `json:"end" binding:"required"`
+}
+
+type UpdateAppointmentRequest struct {
+	Title string    `json:"title" binding:"required"`
+	Start time.Time `json:"start" binding:"required"`
+	End   time.Time `json:"end" binding:"required"`
 }
 
 type UpdateMemberRoleRequest struct {
