@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Smile, Paperclip, Users, Search, X, MoreVertical, Trash2 } from 'lucide-react';
+import { Send, Smile, Paperclip, Users, Search, X, MoreVertical, Trash2, MessageCircle } from 'lucide-react';
 import { ChatMessage, ChatMember, KanbanBoard, User } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { MessageBubble } from './MessageBubble';
@@ -223,46 +223,73 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: isRTL ? -400 : 400 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: isRTL ? -400 : 400 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-2xl z-50 flex flex-col"
+      initial={{ opacity: 0, x: isRTL ? -400 : 400, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: isRTL ? -400 : 400, scale: 0.95 }}
+      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
+      style={{
+        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+        borderLeft: '1px solid rgba(148, 163, 184, 0.2)',
+        boxShadow: '-10px 0 50px -10px rgba(0, 0, 0, 0.1), -2px 0 20px -5px rgba(0, 0, 0, 0.1)'
+      }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-500 to-purple-600">
-        <div className="flex items-center space-x-3 rtl:space-x-reverse">
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            <h3 className="text-white font-semibold">{board.title}</h3>
+      <div 
+        className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700"
+        style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          backdropFilter: 'blur(10px)'
+        }}
+      >
+        <div className="flex items-center space-x-4 rtl:space-x-reverse">
+          <div className="flex items-center space-x-3 rtl:space-x-reverse">
+            <div className="relative">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <MessageCircle size={20} className="text-white" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg">{board.title}</h3>
+              <p className="text-white/70 text-sm">
+                {members.filter(m => m.isOnline).length} online
+              </p>
+            </div>
           </div>
         </div>
         
         <div className="flex items-center space-x-2 rtl:space-x-reverse">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setShowUserSearch(true)}
-            className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+            className="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200"
             title={t('chat.searchUsers')}
           >
             <Search size={18} />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setShowMembers(!showMembers)}
-            className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors relative"
+            className="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200 relative"
             title={t('chat.showMembers')}
           >
             <Users size={18} />
             {members.some(m => m.isOnline) && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full"></div>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border border-white"></div>
             )}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+            className="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200"
             title={t('common.close')}
           >
             <X size={18} />
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -288,12 +315,19 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
       </AnimatePresence>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
+      <div 
+        className="flex-1 overflow-y-auto p-6 space-y-3"
+        style={{
+          background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+        }}
+      >
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-            <Users className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-center">{t('chat.noMessages')}</p>
-            <p className="text-sm text-center mt-2">{t('chat.startConversation')}</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
+              <Users className="w-10 h-10 text-blue-500" />
+            </div>
+            <p className="text-center text-lg font-medium text-gray-600">{t('chat.noMessages')}</p>
+            <p className="text-sm text-center mt-2 text-gray-400">{t('chat.startConversation')}</p>
           </div>
         ) : (
           <>
@@ -314,12 +348,14 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center space-x-2 rtl:space-x-reverse text-gray-500 dark:text-gray-400"
+            className="flex items-center space-x-3 rtl:space-x-reverse"
           >
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
             </div>
             <span className="text-sm">{t('chat.typing')}</span>
           </motion.div>
@@ -327,27 +363,41 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div 
+        className="p-6 border-t border-gray-100 bg-white"
+        style={{
+          background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+          backdropFilter: 'blur(10px)'
+        }}
+      >
         {/* File preview */}
         {selectedFile && (
-          <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg flex items-center justify-between">
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <Paperclip size={16} className="text-blue-600 dark:text-blue-400" />
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl flex items-center justify-between shadow-sm"
+          >
+            <div className="flex items-center space-x-3 rtl:space-x-reverse">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Paperclip size={16} className="text-blue-600" />
+              </div>
               <div>
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{selectedFile.name}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">{formatFileSize(selectedFile.size)}</p>
+                <p className="text-sm font-semibold text-blue-900">{selectedFile.name}</p>
+                <p className="text-xs text-blue-600">{formatFileSize(selectedFile.size)}</p>
               </div>
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={removeSelectedFile}
-              className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 rounded transition-colors"
+              className="p-2 text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-200"
             >
               <X size={16} />
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         )}
 
-        <div className="flex items-end space-x-2 rtl:space-x-reverse">
+        <div className="flex items-end space-x-3 rtl:space-x-reverse">
           <div className="flex-1 relative">
             <input
               ref={inputRef}
@@ -356,16 +406,21 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={selectedFile ? t('chat.addCaption') : t('chat.typeMessage')}
-              className="w-full px-4 py-3 pr-12 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+              className="w-full px-6 py-4 pr-20 border-0 bg-gray-50 text-gray-900 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200 shadow-sm"
+              style={{
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.06)'
+              }}
               disabled={isLoading}
             />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
-              <button
-                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all duration-200"
                 title={t('chat.addEmoji')}
               >
-                <Smile size={16} />
-              </button>
+                <Smile size={18} />
+              </motion.button>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -373,13 +428,15 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
                 className="hidden"
                 accept="*/*"
               />
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+                className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all duration-200"
                 title={t('chat.attachFile')}
               >
-                <Paperclip size={16} />
-              </button>
+                <Paperclip size={18} />
+              </motion.button>
             </div>
           </div>
           
@@ -388,7 +445,12 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
             whileTap={{ scale: 0.95 }}
             onClick={sendMessage}
             disabled={(!newMessage.trim() && !selectedFile) || isLoading}
-            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+            style={{
+              background: (!newMessage.trim() && !selectedFile) || isLoading 
+                ? '#d1d5db' 
+                : 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)'
+            }}
             title={t('chat.sendMessage')}
           >
             <Send size={18} />
