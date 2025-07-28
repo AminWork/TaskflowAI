@@ -257,7 +257,7 @@ type CreateTaskRequest struct {
 	Description    string   `json:"description"`
 	Priority       string   `json:"priority" binding:"required,oneof=low medium high"`
 	Category       string   `json:"category"`
-	Status         string   `json:"status" binding:"required,oneof=todo inprogress done"`
+	Status         string   `json:"status" binding:"required"`
 	AssigneeID     *uint    `json:"assignee_id"`
 	EstimatedHours *float64 `json:"estimated_hours"`
 	Tags           []string `json:"tags"`
@@ -268,7 +268,7 @@ type UpdateTaskRequest struct {
 	Description    string   `json:"description"`
 	Priority       string   `json:"priority" binding:"required,oneof=low medium high"`
 	Category       string   `json:"category"`
-	Status         string   `json:"status" binding:"required,oneof=todo inprogress done"`
+	Status         string   `json:"status" binding:"required"`
 	AssigneeID     *uint    `json:"assignee_id"`
 	EstimatedHours *float64 `json:"estimated_hours"`
 	ActualHours    *float64 `json:"actual_hours"`

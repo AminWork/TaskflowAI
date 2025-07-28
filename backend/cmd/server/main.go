@@ -36,6 +36,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler()
 	boardHandler := handlers.NewBoardHandler(hub)
 	taskHandler := handlers.NewTaskHandler(hub)
+    columnHandler := handlers.NewColumnHandler()
 	chatHandler := handlers.NewChatHandler(hub)
 	privateMessageHandler := handlers.NewPrivateMessageHandler(hub)
 
@@ -91,6 +92,9 @@ func main() {
 				boards.GET("", boardHandler.GetBoards)
 				boards.GET("/:id", boardHandler.GetBoard)
 				boards.PUT("/:id", boardHandler.UpdateBoard)
+				// Column routes
+				boards.GET("/:id/columns", columnHandler.GetColumns)
+				boards.POST("/:id/columns", columnHandler.CreateColumn)
 				boards.DELETE("/:id", boardHandler.DeleteBoard)
 				boards.POST("/:id/invite", boardHandler.InviteUser)
 				boards.DELETE("/:id/members/:userId", boardHandler.RemoveMember)

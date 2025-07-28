@@ -3,6 +3,27 @@
 @tailwind utilities;
 
 @layer base {
+  /* Custom scrollbar styles */
+  /* Works in WebKit-based browsers (Chrome, Edge, Safari) */
+  ::-webkit-scrollbar {
+    height: 8px; /* horizontal scrollbar height */
+    width: 8px;  /* vertical scrollbar width */
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-teal-600 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-teal-500;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--color-primary) / 0.8) transparent;
+  }
   :root {
     --color-primary: 20 184 166;
   }

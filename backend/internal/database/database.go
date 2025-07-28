@@ -52,6 +52,7 @@ func InitDatabase() {
 		&models.BoardSettings{},
 		&models.Task{},
 		&models.TaskTag{},
+        &models.Column{},
 		&models.Invitation{},
 		&models.ChatMessage{},
 		&models.PrivateMessage{},

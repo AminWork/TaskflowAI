@@ -15,6 +15,7 @@ import { useAuth } from './hooks/useAuth';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useBoards } from './hooks/useBoards';
 import { useTasks } from './hooks/useTasks';
+import { useColumns } from './hooks/useColumns';
 import { ChatWindow } from './components/Chat/ChatWindow';
 import { ConversationsList } from './components/PrivateMessages/ConversationsList';
 import { MainContent } from './components/MainContent';
@@ -31,11 +32,7 @@ function App() {
   const { t, isRTL, language } = useLanguage();
   const { unreadMessages, requestNotificationPermission } = useNotifications();
 
-const columns: Column[] = [
-    { id: '1', title: t('task.todo'), status: 'todo', color: 'bg-slate-100 dark:bg-slate-700' },
-    { id: '2', title: t('task.inprogress'), status: 'inprogress', color: 'bg-slate-200 dark:bg-slate-600' },
-    { id: '3', title: t('task.done'), status: 'done', color: 'bg-slate-300 dark:bg-slate-500' },
-];
+
 
   const { user, token, isLoading, login, register, logout, isAuthenticated } = useAuth();
   
@@ -59,7 +56,10 @@ const columns: Column[] = [
     hasPermission,
     deleteBoard,
   } = useBoards(user, token);
-  
+
+  // Columns (dynamic, fetched from API)
+  const { columns, createColumn } = useColumns(currentBoard?.id, token);
+
   const {
     tasks,
     isLoading: isTasksLoading,
@@ -95,6 +95,11 @@ const columns: Column[] = [
 
   // TODO: Re-implement filtering logic if needed
   const filteredTasks = tasks;
+
+  // Add new column via API
+  const handleAddColumn = (title: string) => {
+    createColumn(title);
+  };
 
   const handleAddTask = (status: Task['status']) => {
     if (!currentBoard || !hasPermission(currentBoard.id, 'create_task')) {
@@ -358,6 +363,7 @@ const columns: Column[] = [
                 hasPermission={(action) => hasPermission(currentBoard!.id, action as Permission['action'])}
                 columns={columns}
                 filteredTasks={filteredTasks}
+                onAddColumn={handleAddColumn}
                 handleAddTask={handleAddTask}
                 handleDeleteTask={handleDeleteTask}
                 handleEditTask={handleEditTask}
@@ -375,13 +381,14 @@ const columns: Column[] = [
             />
         ) : (
             <BoardDashboard
-                boards={boards}
-                currentUser={user!}
-                onBoardSelect={handleSelectBoard}
-                onCreateBoard={() => setIsBoardFormOpen(true)}
-                onDeleteBoard={deleteBoard}
-                onEditBoard={handleEditBoard}
-                onInviteUsers={() => setIsInviteModalOpen(true)}
+                 boards={boards}
+                 currentUser={user!}
+                 onBoardSelect={handleSelectBoard}
+                 onCreateBoard={() => setIsBoardFormOpen(true)}
+                 onDeleteBoard={deleteBoard}
+                 onEditBoard={handleEditBoard}
+                 onInviteUsers={() => setIsInviteModalOpen(true)}
+                 hasPermission={hasPermission}
             />
         )}
 

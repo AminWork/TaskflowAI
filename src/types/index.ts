@@ -4,7 +4,7 @@ export interface Task {
   description: string;
   priority: 'low' | 'medium' | 'high';
   category: string;
-  status: 'todo' | 'inprogress' | 'done';
+  status: string; // dynamic status for custom columns
   createdAt: Date;
   updatedAt: Date;
   tags: string[];
@@ -23,7 +23,7 @@ export interface ChatMessage {
 export interface Column {
   id: string;
   title: string;
-  status: 'todo' | 'inprogress' | 'done';
+  status: string; // dynamic status for custom columns
   color: string;
 }
 

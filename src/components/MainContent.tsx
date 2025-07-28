@@ -1,8 +1,10 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { KanbanBoard, Task, User } from '../types';
+import { KanbanBoard, Task, User, Column } from '../types';
 import { BoardDashboard } from './BoardDashboard';
+import { useLanguage } from '../contexts/LanguageContext';
 import { KanbanColumn } from './KanbanColumn';
+import { AddColumnCard } from './AddColumnCard';
 import { Analytics } from './Analytics';
 import { MemberManagement } from './MemberManagement';
 import CalendarPage from './CalendarPage';
@@ -16,6 +18,7 @@ interface MainContentProps {
   hasPermission: (boardId: string, action: 'create_task' | 'edit_task' | 'delete_task' | 'move_task' | 'invite_users' | 'manage_board' | 'delete_board' | 'add_member' | 'remove_member' | 'edit_board') => boolean;
   columns: any[];
   filteredTasks: Task[];
+  onAddColumn: (title: string) => void;
   handleAddTask: (status: Task['status']) => void;
   handleDeleteTask: (id: string) => void;
   handleEditTask: (task: Task) => void;
@@ -41,6 +44,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   hasPermission,
   columns,
   filteredTasks,
+  onAddColumn,
   handleAddTask,
   handleDeleteTask,
   handleEditTask,
@@ -56,6 +60,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   acceptInvitation,
   declineInvitation,
 }) => {
+  const { isRTL } = useLanguage();
   return (
     <AnimatePresence mode="wait">
       {currentView === 'dashboard' && currentBoard && (
@@ -68,11 +73,13 @@ export const MainContent: React.FC<MainContentProps> = ({
         >
           <BoardDashboard
             boards={boards}
-            currentBoard={currentBoard}
-            onSelectBoard={onSelectBoard}
+            currentUser={user}
+            onBoardSelect={onSelectBoard}
+            onCreateBoard={() => {}}
+            onEditBoard={() => {}}
             onDeleteBoard={onDeleteBoard}
+            onInviteUsers={() => {}}
             hasPermission={hasPermission}
-            tasks={filteredTasks}
           />
         </motion.div>
       )}
@@ -85,10 +92,12 @@ export const MainContent: React.FC<MainContentProps> = ({
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {columns.map((column, index) => (
+          <div className={`flex ${isRTL ? 'flex-row-reverse' : 'flex-row'} space-x-8 overflow-x-auto pb-4`}>
+            {/* Existing columns */}
+            {columns.map((column: Column, index: number) => (
               <motion.div
                 key={column.id}
+                className="flex-none w-80"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -106,6 +115,15 @@ export const MainContent: React.FC<MainContentProps> = ({
                 />
               </motion.div>
             ))}
+            {/* Add Column Card */}
+            <motion.div
+              key="add-column"
+              className="flex-none w-80"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <AddColumnCard onAddColumn={onAddColumn} />
+            </motion.div>
           </div>
         </motion.div>
       )}

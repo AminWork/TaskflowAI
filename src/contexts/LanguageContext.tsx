@@ -242,6 +242,9 @@ const translations = {
     'chat.downloadFile': 'دانلود فایل',
     'chat.sendError': 'خطا در ارسال پیام. لطفا دوباره تلاش کنید.',
 
+    // Columns
+    'column.addColumn': 'افزودن ستون',
+
     // Invite
     'invite.sent': 'دعوت‌نامه ارسال شد',
     'invite.failed': 'ارسال دعوت‌نامه ناموفق بود',
@@ -475,6 +478,9 @@ const translations = {
     'chat.addCaption': 'Add a caption...',
     'chat.downloadFile': 'Download File',
     'chat.sendError': 'Error sending message. Please try again.',
+
+    // Columns
+    'column.addColumn': 'Add Column',
 
     // Invite
     'invite.sent': 'Invitation sent',
