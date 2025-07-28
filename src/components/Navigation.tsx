@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
-import { Kanban, BarChart3, LogOut, Users, Sparkles, Grid3X3, UserPlus, Bell, Calendar } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Kanban, BarChart3, LogOut, Users, Sparkles, Grid3X3, UserPlus, Bell, Calendar, ChevronDown } from 'lucide-react';
 import { User as UserType, KanbanBoard } from '../types';
 import { BoardSelector } from './BoardSelector';
 import { ThemeToggle } from './ThemeToggle';
@@ -32,6 +33,21 @@ export function Navigation({
   invitationCount = 0
 }: NavigationProps) {
   const { t, isRTL } = useLanguage();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Close dropdown when clicking outside
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  
   const navItems = [
     { id: 'dashboard', label: t('nav.dashboard'), icon: Grid3X3 },
     { id: 'kanban', label: t('nav.kanban'), icon: Kanban },
@@ -97,63 +113,70 @@ export function Navigation({
           </div>
 
           {/* Right side actions */}
-          <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-4`}>
-            <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
-              {/* Theme Toggle */}
-              <ThemeToggle />
-              
-              {/* Language Toggle */}
-              <LanguageToggle />
-
-              {/* Invite Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onInviteUsers}
-                className="relative p-2 text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-all duration-300"
-                title={t('nav.inviteUsers')}
-              >
-                <UserPlus className="w-5 h-5" />
-              </motion.button>
-
-              {/* Invitations Bell */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onViewChange('dashboard')}
-                className="relative p-2 text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-all duration-300"
-                title={t('nav.viewInvitations')}
-              >
-                <Bell className="w-5 h-5" />
-                {invitationCount > 0 && (
-                  <span className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center`}>
-                    {invitationCount > 9 ? '9+' : invitationCount}
-                  </span>
-                )}
-              </motion.button>
-            </div>
-
-            {/* User Menu */}
-            <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3`}>
+          <div className={`relative flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-4`} ref={menuRef}>
+            {/* User Menu trigger */}
+            <button
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3 focus:outline-none`}
+            >
               <img
                 src={user.avatar}
                 alt={user.name}
                 className="w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-600"
               />
-              <div className="hidden lg:block">
+              <div className="hidden lg:block text-left">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{user.name}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
               </div>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onLogout}
-              className="p-2 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-900/20 rounded-full transition-all duration-300"
-              title={t('auth.logout')}
-            >
-              <LogOut className="w-5 h-5" />
-            </motion.button>
+              <ChevronDown className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+            </button>
+
+            {/* Dropdown */}
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-14 w-56 bg-white dark:bg-slate-800 backdrop-blur border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-2 z-50`}
+                >
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                    {t('nav.preferences')}
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer">
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Theme</span>
+                    <ThemeToggle />
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer">
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Language</span>
+                    <LanguageToggle />
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onInviteUsers}>
+                    <span className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-200">
+                      <UserPlus className="w-4 h-4" />
+                      <span>{t('nav.inviteUsers')}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={() => { onViewChange('dashboard'); setIsMenuOpen(false); }}>
+                    <span className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-200">
+                      <Bell className="w-4 h-4" />
+                      <span>{t('nav.viewInvitations')}</span>
+                    </span>
+                    {invitationCount > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-4 px-1 flex items-center justify-center">
+                        {invitationCount > 9 ? '9+' : invitationCount}
+                      </span>
+                    )}
+                  </div>
+                  <div className="border-t border-slate-200 dark:border-slate-700 my-2" />
+                  <div className="flex items-center px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onLogout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">{t('auth.logout')}</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
           </div>
         </div>
       </div>
