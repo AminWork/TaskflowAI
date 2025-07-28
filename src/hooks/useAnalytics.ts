@@ -42,7 +42,7 @@ export function useAnalytics(tasks: Task[]): Analytics {
       });
 
       return {
-        date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
         completed: completedOnDay.length,
         created: dayTasks.length,
       };
@@ -57,8 +57,8 @@ export function useAnalytics(tasks: Task[]): Analytics {
     });
 
     const categoryBreakdown = Array.from(categoryMap.entries()).map(([category, count]) => ({
-      category,
-      count,
+      name: category,
+      value: count,
       percentage: totalTasks > 0 ? (count / totalTasks) * 100 : 0,
     }));
 
@@ -69,8 +69,8 @@ export function useAnalytics(tasks: Task[]): Analytics {
     });
 
     const priorityDistribution = Array.from(priorityMap.entries()).map(([priority, count]) => ({
-      priority,
-      count,
+      name: priority,
+      value: count,
       percentage: totalTasks > 0 ? (count / totalTasks) * 100 : 0,
     }));
 

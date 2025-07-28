@@ -5,7 +5,7 @@ import { BoardDashboard } from './BoardDashboard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { KanbanColumn } from './KanbanColumn';
 import { AddColumnCard } from './AddColumnCard';
-import { Analytics } from './Analytics';
+import { AnalyticsPage } from './AnalyticsPage';
 import { MemberManagement } from './MemberManagement';
 import CalendarPage from './CalendarPage';
 
@@ -25,7 +25,7 @@ interface MainContentProps {
   handleDragOver: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent, status: Task['status']) => void;
   handleDragStart: (e: React.DragEvent, task: Task) => void;
-  analytics: any;
+  allTasks: any[];
   user: User;
   invitations: any[];
   inviteUser: (boardId: string, email: string, role: 'admin' | 'member' | 'viewer') => void;
@@ -51,7 +51,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   handleDragOver,
   handleDrop,
   handleDragStart,
-  analytics,
+  allTasks,
   user,
   invitations,
   inviteUser,
@@ -128,7 +128,7 @@ export const MainContent: React.FC<MainContentProps> = ({
         </motion.div>
       )}
 
-      {currentView === 'analytics' && currentBoard && (
+      {currentView === 'analytics' && (
         <motion.div
           key="analytics"
           initial={{ opacity: 0, y: 20 }}
@@ -136,7 +136,7 @@ export const MainContent: React.FC<MainContentProps> = ({
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <Analytics analytics={analytics} />
+          <AnalyticsPage boards={boards} tasks={allTasks} />
         </motion.div>
       )}
 

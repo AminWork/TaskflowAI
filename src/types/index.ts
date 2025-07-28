@@ -90,18 +90,18 @@ export interface Analytics {
   averageCompletionTime: number;
   productivityScore: number;
   weeklyProgress: Array<{
-    date: string;
+    day: string;
     completed: number;
     created: number;
   }>;
   categoryBreakdown: Array<{
-    category: string;
-    count: number;
+    name: string;
+    value: number;
     percentage: number;
   }>;
   priorityDistribution: Array<{
-    priority: string;
-    count: number;
+    name: string;
+    value: number;
     percentage: number;
   }>;
 }

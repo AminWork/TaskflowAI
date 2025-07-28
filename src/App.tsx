@@ -12,7 +12,8 @@ import { BoardDashboard } from './components/BoardDashboard';
 import { QuickInviteModal } from './components/QuickInviteModal';
 import { InviteNotifications } from './components/InviteNotifications';
 import { useAuth } from './hooks/useAuth';
-import { useAnalytics } from './hooks/useAnalytics';
+
+import { useAllBoardTasks } from './hooks/useAllBoardTasks';
 import { useBoards } from './hooks/useBoards';
 import { useTasks } from './hooks/useTasks';
 import { useColumns } from './hooks/useColumns';
@@ -79,8 +80,8 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPrivateMessagesOpen, setIsPrivateMessagesOpen] = useState(false);
 
-  // Analytics
-  const analytics = useAnalytics(tasks);
+  // General tasks across all boards
+  const { tasks: allTasks } = useAllBoardTasks(boards, token);
 
   // Auto-select first board if none selected
   useEffect(() => {
@@ -381,7 +382,7 @@ function App() {
                 handleDragOver={handleDragOver}
                 handleDrop={handleDrop}
                 handleDragStart={handleDragStart}
-                analytics={analytics}
+                allTasks={allTasks}
                 user={user!}
                 invitations={invitations}
                 inviteUser={inviteUser}
