@@ -268,7 +268,7 @@ const columns: Column[] = [
 
           // Main Kanban View
   return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6 transition-colors duration-300">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-6 pb-6 transition-colors duration-300">
       {/* Navigation */}
       <Navigation
                 key={language} // Add key to force re-render on language change

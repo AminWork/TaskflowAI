@@ -6,11 +6,26 @@ import AppointmentForm from './AppointmentForm';
 import { Appointment } from '../types/Appointment';
 import { useAppointments } from '../hooks/useAppointments';
 import { AppointmentDetailsModal } from './AppointmentDetailsModal';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
 
 const localizer = momentLocalizer(moment);
 
 const CalendarPage = () => {
+  const { language, t } = useLanguage();
+
+  const messages = {
+    today: t('calendar.today'),
+    previous: t('calendar.previous'),
+    next: t('calendar.next'),
+    month: t('calendar.month'),
+    week: t('calendar.week'),
+    day: t('calendar.day'),
+    agenda: t('calendar.agenda'),
+    date: t('calendar.date'),
+    time: t('calendar.time'),
+    event: t('calendar.event'),
+  } as const;
   const { appointments, loading, error, addAppointment, deleteAppointment } = useAppointments();
   const [selectedEvent, setSelectedEvent] = useState<Appointment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,7 +51,10 @@ const CalendarPage = () => {
       {loading && <p>Loading appointments...</p>}
       {error && <p className="text-red-500">{error}</p>}
       <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl p-4 mt-4" style={{ height: 'calc(100vh - 300px)' }}>
+
         <Calendar
+          culture={language}
+          messages={messages}
           localizer={localizer}
           events={appointments}
           startAccessor="start"

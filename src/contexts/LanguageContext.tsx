@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import moment from 'moment';
+import 'moment/locale/fa';
 
 export type Language = 'fa' | 'en';
 
@@ -19,9 +21,22 @@ const translations = {
     'nav.kanban': 'کانبان',
     'nav.analytics': 'تحلیل‌ها',
     'nav.members': 'اعضا',
+    'nav.calendar': 'تقویم',
     'nav.logout': 'خروج',
     'nav.inviteUsers': 'دعوت کاربران',
     'nav.viewInvitations': 'مشاهده دعوت‌نامه‌ها',
+
+    // Calendar
+    'calendar.today': 'امروز',
+    'calendar.previous': 'قبلی',
+    'calendar.next': 'بعدی',
+    'calendar.month': 'ماه',
+    'calendar.week': 'هفته',
+    'calendar.day': 'روز',
+    'calendar.agenda': 'برنامه',
+    'calendar.date': 'تاریخ',
+    'calendar.time': 'زمان',
+    'calendar.event': 'رویداد',
 
     // Dashboard
     'dashboard.title': 'بردهای من',
@@ -240,9 +255,22 @@ const translations = {
     'nav.kanban': 'Kanban',
     'nav.analytics': 'Analytics',
     'nav.members': 'Members',
+    'nav.calendar': 'Calendar',
     'nav.logout': 'Logout',
     'nav.inviteUsers': 'Invite Users',
     'nav.viewInvitations': 'View Invitations',
+
+    // Calendar
+    'calendar.today': 'Today',
+    'calendar.previous': 'Previous',
+    'calendar.next': 'Next',
+    'calendar.month': 'Month',
+    'calendar.week': 'Week',
+    'calendar.day': 'Day',
+    'calendar.agenda': 'Agenda',
+    'calendar.date': 'Date',
+    'calendar.time': 'Time',
+    'calendar.event': 'Event',
 
     // Dashboard
     'dashboard.title': 'My Boards',
@@ -474,6 +502,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Update moment.js locale for date formatting across the app
+    moment.locale(language === 'fa' ? 'fa' : 'en');
     const root = document.documentElement;
     
     if (isRTL) {

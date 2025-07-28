@@ -37,7 +37,7 @@ export function Navigation({
     { id: 'kanban', label: t('nav.kanban'), icon: Kanban },
     { id: 'analytics', label: t('nav.analytics'), icon: BarChart3 },
     { id: 'members', label: t('nav.members'), icon: Users },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
+    { id: 'calendar', label: t('nav.calendar'), icon: Calendar },
   ] as const;
 
   return (
