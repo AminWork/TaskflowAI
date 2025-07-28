@@ -265,8 +265,9 @@ func (h *TaskHandler) MoveTask(c *gin.Context) {
 		return
 	}
 
+	// Accept any status string to support custom columns
 	var req struct {
-		Status string `json:"status" binding:"required,oneof=todo inprogress done"`
+		Status string `json:"status" binding:"required,min=1"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

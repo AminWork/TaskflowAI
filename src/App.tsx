@@ -140,11 +140,22 @@ function App() {
   };
 
   const handleDragStart = (e: React.DragEvent, task: Task) => {
+    // Set the dragged task in state so that we can reference it on drop
     setDraggedTask(task);
+
+    // Some browsers (especially Chrome) require at least one piece of data set
+    // on the DataTransfer object for drag-and-drop to properly initiate.
+    // We store the task id just in case it is useful elsewhere.
+    e.dataTransfer.setData('text/plain', task.id);
+    // Indicate that the operation is a move, not a copy
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
+    // Prevent default to allow a drop
     e.preventDefault();
+    // Show the user that the item will be moved
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = async (e: React.DragEvent, status: Task['status']) => {
