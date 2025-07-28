@@ -48,7 +48,7 @@ export function MemberManagement({
       case 'owner': return <Crown size={16} className="text-yellow-500" />;
       case 'admin': return <Shield size={16} className="text-blue-500" />;
       case 'member': return <Users size={16} className="text-green-500" />;
-      case 'viewer': return <Eye size={16} className="text-gray-500" />;
+      case 'viewer': return <Eye size={16} className="text-gray-500 dark:text-gray-400" />;
       default: return null;
     }
   };
@@ -77,8 +77,8 @@ export function MemberManagement({
             <Users className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Team Members</h3>
-            <p className="text-gray-600">{board.members.length} members</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Team Members</h3>
+            <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-500">{board.members.length} members</p>
           </div>
         </div>
         
@@ -106,10 +106,10 @@ export function MemberManagement({
             {boardInvitations.map((invitation) => (
               <div key={invitation.id} className="flex items-center justify-between bg-white rounded-lg p-3">
                 <div className="flex items-center space-x-3">
-                  <Mail size={16} className="text-gray-400" />
+                  <Mail size={16} className="text-gray-400 dark:text-gray-500" />
                   <div>
-                    <p className="font-medium text-gray-900">{invitation.invitedEmail}</p>
-                    <p className="text-sm text-gray-500 capitalize">Invited as {invitation.role}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{invitation.invitedEmail}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">Invited as {invitation.role}</p>
                   </div>
                 </div>
                 {invitation.invitedEmail === currentUser.email && (
@@ -138,17 +138,17 @@ export function MemberManagement({
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="divide-y divide-gray-100">
           {board.members.map((member) => (
-            <div key={member.userId} className="p-4 hover:bg-gray-50 transition-colors">
+            <div key={member.userId} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <img
                     src={member.avatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face`}
                     alt={member.name}
-                    className="w-10 h-10 rounded-full border-2 border-gray-200"
+                    className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-700"
                   />
                   <div>
-                    <p className="font-medium text-gray-900">{member.name}</p>
-                    <p className="text-sm text-gray-500">{member.email}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{member.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{member.email}</p>
                   </div>
                 </div>
                 
@@ -162,7 +162,7 @@ export function MemberManagement({
                     <div className="relative">
                       <button
                         onClick={() => setActiveDropdown(activeDropdown === member.userId ? null : member.userId)}
-                        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
                       >
                         <MoreVertical size={16} />
                       </button>
@@ -173,14 +173,14 @@ export function MemberManagement({
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[150px]"
+                            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-10 min-w-[150px]"
                           >
                             <button
                               onClick={() => {
                                 onUpdateRole(member.userId, 'admin');
                                 setActiveDropdown(null);
                               }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                             >
                               Make Admin
                             </button>
@@ -189,7 +189,7 @@ export function MemberManagement({
                                 onUpdateRole(member.userId, 'member');
                                 setActiveDropdown(null);
                               }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                             >
                               Make Member
                             </button>
@@ -198,7 +198,7 @@ export function MemberManagement({
                                 onUpdateRole(member.userId, 'viewer');
                                 setActiveDropdown(null);
                               }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                             >
                               Make Viewer
                             </button>
@@ -236,10 +236,10 @@ export function MemberManagement({
               className="bg-white rounded-2xl max-w-md w-full p-6"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Invite Team Member</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Invite Team Member</h3>
                 <button
                   onClick={() => setIsInviteOpen(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -247,27 +247,27 @@ export function MemberManagement({
 
               <form onSubmit={handleInvite} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Email Address
                   </label>
                   <input
                     type="email"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="Enter email address..."
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Role
                   </label>
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as 'admin' | 'member' | 'viewer')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
                     <option value="viewer">Viewer - Can view tasks only</option>
                     <option value="member">Member - Can create and edit tasks</option>
@@ -285,7 +285,7 @@ export function MemberManagement({
                   <button
                     type="button"
                     onClick={() => setIsInviteOpen(false)}
-                    className="px-6 py-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-6 py-3 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Cancel
                   </button>

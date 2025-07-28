@@ -33,7 +33,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ boards, tasks }) =
           }`}
           onClick={() => setSelectedId('general')}
         >
-          {t('analytics.general')}
+          Overview
         </button>
         {boards.map((b) => (
           <button
