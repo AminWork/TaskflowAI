@@ -16,11 +16,7 @@ RUN npm run build
 # ---------- Runtime stage ----------
 FROM nginx:stable-alpine AS runtime
 
-# Remove default Nginx static assets config
-RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy custom Nginx config (adds proxy for /api and websocket upgrade)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built assets
 COPY --from=builder /app/dist /usr/share/nginx/html

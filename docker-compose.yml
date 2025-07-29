@@ -31,13 +31,27 @@ services:
       PORT: "8080"
       JWT_SECRET: "supersecret-change-me"
       DB_DSN: "postgres://kanban:kanban@db:5432/kanban_db?sslmode=disable"
-      CORS_ORIGINS: "http://localhost:3001"
+      CORS_ORIGINS: "http://localhost,http://localhost:3001"
     ports:
       - "8080:8080"
     networks:
       - kanban_net
 
-  # React + Vite frontend service (served by Nginx)
+  # Nginx reverse proxy for HTTP & WebSocket
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    networks:
+      - kanban_net
+
+  # React + Vite frontend service (served by Nginx in container)
   frontend:
     build:
       context: .
@@ -45,8 +59,6 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "3001:80"
     networks:
       - kanban_net
 

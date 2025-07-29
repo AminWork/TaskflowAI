@@ -29,10 +29,22 @@ export function useWebSocket({ boardId, onMessage, messageTypes = [] }: UseWebSo
     }
     
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = boardId 
-      ? `${protocol}//${host}/api/ws/${boardId}` 
-      : `${protocol}//${host}/api/ws/private`;
+
+    // Determine the correct WebSocket host:
+    // 1. Prefer explicit env override (VITE_WS_BASE), e.g. ws://localhost:3001
+    // 2. If running Vite dev server on :5173, default to backend :3001
+    // 3. Otherwise fall back to the current origin host (production)
+    const envWsBase = import.meta.env.VITE_WS_BASE as string | undefined;
+    const computedHost = envWsBase
+      ? envWsBase.replace(/^wss?:\/\//, '') // strip protocol if present
+      : window.location.hostname === 'localhost' && window.location.port === '5173'
+        ? 'localhost:8080'
+        : window.location.host;
+
+    const wsBase = `${protocol}//${computedHost}`;
+    const wsUrl = boardId
+      ? `${wsBase}/api/ws/${boardId}`
+      : `${wsBase}/api/ws/private`;
     
     const ws = new WebSocket(wsUrl);
     socket.current = ws;
