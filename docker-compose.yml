@@ -31,7 +31,7 @@ services:
       PORT: "8080"
       JWT_SECRET: "supersecret-change-me"
       DB_DSN: "postgres://kanban:kanban@db:5432/kanban_db?sslmode=disable"
-      CORS_ORIGINS: "http://localhost,http://localhost:3001"
+      CORS_ORIGINS: "http://localhost,http://localhost:3001,http://localhost:5173"
     ports:
       - "8080:8080"
     networks:
