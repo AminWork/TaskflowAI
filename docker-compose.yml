@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # PostgreSQL database service
   db:
@@ -23,6 +21,9 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        GOPROXY: "https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct"
+        GOSUMDB: "off"
     restart: unless-stopped
     depends_on:
       db:

@@ -1,7 +1,10 @@
 # ---------- Builder stage ----------
 FROM golang:1.21-bookworm AS builder
 
-ENV GOPROXY=https://proxy.golang.org,direct
+ARG GOPROXY=https://goproxy.io,https://proxy.golang.org,direct
+ARG GOSUMDB=sum.golang.org
+ENV GOPROXY=${GOPROXY}
+ENV GOSUMDB=${GOSUMDB}
 
 WORKDIR /app
 
