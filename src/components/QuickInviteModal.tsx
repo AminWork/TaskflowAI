@@ -228,13 +228,13 @@ export function QuickInviteModal({
 
                     {/* Board */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-800 dark:text-gray-900 mb-2">
                         Board
                       </label>
                       <select
                         value={invite.boardId}
                         onChange={(e) => updateInvite(invite.id, 'boardId', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full px-3 py-2 bg-white text-gray-800 dark:text-gray-900 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       >
                         {boards.map(board => (
                           <option key={board.id} value={board.id}>
@@ -243,7 +243,7 @@ export function QuickInviteModal({
                         ))}
                       </select>
                       {invite.boardId && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-600 mt-1">
                           {getSelectedBoard(invite.boardId)?.members.length} members
                         </p>
                       )}
@@ -251,13 +251,13 @@ export function QuickInviteModal({
 
                     {/* Role */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-800 dark:text-gray-900 mb-2">
                         Role
                       </label>
                       <select
                         value={invite.role}
                         onChange={(e) => updateInvite(invite.id, 'role', e.target.value as 'admin' | 'member' | 'viewer')}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full px-3 py-2 bg-white text-gray-800 dark:text-gray-900 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       >
                         <option value="viewer">Viewer</option>
                         <option value="member">Member</option>
@@ -265,7 +265,7 @@ export function QuickInviteModal({
                       </select>
                       <div className="flex items-center space-x-1 mt-1">
                         {getRoleIcon(invite.role)}
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-600">
                           {getRoleDescription(invite.role)}
                         </p>
                       </div>
