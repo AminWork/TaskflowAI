@@ -261,14 +261,7 @@ function App() {
                   hasPermission={hasPermission}
                 />
                 
-                {/* Quick Invite Modal */}
-                <QuickInviteModal
-          isOpen={isInviteModalOpen}
-          onClose={() => setIsInviteModalOpen(false)}
-          onInviteUser={handleInviteUsers}
-          boards={boards}
-          currentBoardId={currentBoard?.id}
-        />
+
         
         <BoardForm
                   board={editingBoard}
@@ -423,6 +416,15 @@ function App() {
             setEditingBoard(undefined);
           }}
           onSave={handleCreateBoard}
+        />
+
+        {/* Quick Invite Modal */}
+        <QuickInviteModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          onInviteUser={handleInviteUsers}
+          boards={boards}
+          currentBoardId={currentBoard?.id}
         />
 
         {/* AI Assistant */}
