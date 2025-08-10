@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Kanban, BarChart3, LogOut, Users, Sparkles, Grid3X3, UserPlus, Bell, Calendar, ChevronDown } from 'lucide-react';
+import { Kanban, BarChart3, LogOut, Users, Sparkles, Grid3X3, UserPlus, Bell, Calendar, ChevronDown, Settings } from 'lucide-react';
 import { User as UserType, KanbanBoard } from '../types';
 import { BoardSelector } from './BoardSelector';
 import { ThemeToggle } from './ThemeToggle';
@@ -9,8 +9,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 interface NavigationProps {
   user: UserType;
-  currentView: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar';
-  onViewChange: (view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar') => void;
+  currentView: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'settings';
+  onViewChange: (view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'settings') => void;
   onLogout: () => void;
   boards: KanbanBoard[];
   currentBoard: KanbanBoard | null;
@@ -54,6 +54,7 @@ export function Navigation({
     { id: 'analytics', label: t('nav.analytics'), icon: BarChart3 },
     { id: 'members', label: t('nav.members'), icon: Users },
     { id: 'calendar', label: t('nav.calendar'), icon: Calendar },
+    { id: 'settings', label: t('nav.settings'), icon: Settings },
   ] as const;
 
   return (
@@ -96,8 +97,8 @@ export function Navigation({
                 key={item.id}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => onViewChange(item.id as 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar')}
-                disabled={!currentBoard && item.id !== 'dashboard'}
+                onClick={() => onViewChange(item.id as 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'settings')}
+                disabled={!currentBoard && item.id !== 'dashboard' && item.id !== 'settings'}
                 className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2 px-4 py-2 rounded-full transition-all duration-300 text-sm font-medium ${
                   currentView === item.id
                     ? 'bg-white dark:bg-slate-700 text-teal-500 shadow-sm'

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Task, Column, KanbanBoard, Permission } from './types';
+import { Task, KanbanBoard, Permission } from './types';
 import { useLanguage } from './contexts/LanguageContext';
 import { useNotifications } from './contexts/NotificationContext';
 import { TaskForm } from './components/TaskForm';
@@ -20,6 +20,7 @@ import { useColumns } from './hooks/useColumns';
 import { ChatWindow } from './components/Chat/ChatWindow';
 import { ConversationsList } from './components/PrivateMessages/ConversationsList';
 import { MainContent } from './components/MainContent';
+import { Settings } from './components/Settings';
 import { migrateLocalStorageKeys } from './utils/migrateLocalStorage';
 import { useWebSocket } from './hooks/useWebSocket';
 import { MessageCircle, Mail } from 'lucide-react';
@@ -63,13 +64,13 @@ function App() {
 
   const {
     tasks,
-    isLoading: isTasksLoading,
+    isLoading: _isTasksLoading,
     createTask,
     updateTask,
     deleteTask,
     moveTask,
   } = useTasks(currentBoard?.id || null, token);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'settings'>('dashboard');
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isBoardFormOpen, setIsBoardFormOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<KanbanBoard | undefined>();
@@ -194,7 +195,7 @@ function App() {
     setCurrentView('kanban');
   };
 
-  const handleViewChange = (view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar') => {
+  const handleViewChange = (view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'settings') => {
     setCurrentView(view);
   };
 
@@ -367,9 +368,11 @@ function App() {
               </AnimatePresence>
 
       <div className="container mx-auto px-4 py-8">
-        {currentBoard ? (
+        {currentView === 'settings' ? (
+          <Settings user={user!} />
+        ) : currentBoard ? (
             <MainContent
-                currentView={currentView}
+                currentView={currentView as 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar'}
                 currentBoard={currentBoard}
                 boards={boards}
                 onSelectBoard={handleSelectBoard}

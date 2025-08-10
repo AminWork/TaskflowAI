@@ -9,6 +9,7 @@ import { AnalyticsPage } from './AnalyticsPage';
 import { MemberManagement } from './MemberManagement';
 import CalendarPage from './CalendarPage';
 
+
 interface MainContentProps {
   currentView: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar';
   currentBoard: KanbanBoard | null;
