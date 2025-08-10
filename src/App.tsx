@@ -272,6 +272,15 @@ function App() {
                   }}
           onSave={handleCreateBoard}
         />
+
+        {/* Quick Invite Modal */}
+        <QuickInviteModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          onInviteUser={handleInviteUsers}
+          boards={boards}
+          currentBoardId={currentBoard?.id}
+        />
       </div>
     );
   }
