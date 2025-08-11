@@ -84,6 +84,15 @@ func main() {
 			{
 				users.GET("/:id", authHandler.GetUser)
 			}
+			
+			// Member profile routes
+			profile := protected.Group("/profile")
+			{
+				profile.GET("", handlers.GetMemberProfile)
+				profile.PUT("", handlers.UpdateMemberProfile)
+				profile.POST("/upload-resume", handlers.UploadResumeFile)
+				profile.DELETE("/resume", handlers.DeleteResumeFile)
+			}
 
 			// Board routes
 			boards := protected.Group("/boards")
@@ -99,6 +108,12 @@ func main() {
 				boards.POST("/:id/invite", boardHandler.InviteUser)
 				boards.DELETE("/:id/members/:userId", boardHandler.RemoveMember)
 				boards.PUT("/:id/members/:userId/role", boardHandler.UpdateMemberRole)
+				
+				// LLM routes
+				boards.GET("/:id/llm-config", handlers.GetLLMConfig)
+				boards.PUT("/:id/llm-config", handlers.UpdateLLMConfig)
+				boards.POST("/:id/generate-tasks", handlers.GenerateTasks)
+				boards.POST("/:id/llm-models/search", handlers.SearchLLMModels)
 			}
 
 			// Invitation routes

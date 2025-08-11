@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KanbanBoard, User, Permission } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { BoardSettings } from './BoardSettings';
 import { 
   Plus, 
   Search, 
@@ -46,6 +47,8 @@ export function BoardDashboard({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'owned' | 'member'>('all');
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [showBoardSettings, setShowBoardSettings] = useState(false);
+  const [selectedBoardForSettings, setSelectedBoardForSettings] = useState<KanbanBoard | null>(null);
 
   // Filter boards based on search and filter criteria
   const filteredBoards = boards.filter(board => {
@@ -74,8 +77,92 @@ export function BoardDashboard({
           onDeleteBoard(board.id);
         }
         break;
+      case 'settings':
+        setSelectedBoardForSettings(board);
+        setShowBoardSettings(true);
+        break;
     }
   };
+
+  // Enhanced dropdown component with better structure and accessibility
+  const BoardDropdown = React.memo(({ board }: { board: KanbanBoard }) => {
+    const isOpen = activeDropdown === board.id;
+    const userRole = getUserRole(board);
+    const isOwner = userRole === 'owner';
+    const isCreator = board.createdBy === currentUser.id;
+
+    const toggleDropdown = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setActiveDropdown(isOpen ? null : board.id);
+    };
+
+    const handleAction = (action: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handleBoardAction(action, board);
+    };
+
+    // Dropdown menu items configuration
+    const menuItems = [
+      {
+        key: 'edit',
+        icon: Edit2,
+        label: t('board.edit'),
+        onClick: handleAction('edit'),
+        show: true,
+        className: 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600',
+      },
+      {
+        key: 'settings',
+        icon: Settings,
+        label: 'Board Settings',
+        onClick: handleAction('settings'),
+        show: isOwner,
+        className: 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600',
+      },
+      {
+        key: 'delete',
+        icon: Trash2,
+        label: t('board.delete'),
+        onClick: handleAction('delete'),
+        show: isCreator,
+        className: 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20',
+      },
+    ].filter(item => item.show);
+
+    return (
+      <div className="relative z-[990] overflow-visible">
+        <button
+          onClick={toggleDropdown}
+          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 relative z-50"
+          aria-label="Board actions"
+          aria-expanded={isOpen}
+          aria-haspopup="menu"
+        >
+          <MoreVertical size={16} />
+        </button>
+        
+        {isOpen && (
+          <div 
+            className="absolute right-2 top-full mt-1 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-[1000] w-[150px] origin-top-right pointer-events-auto"
+            role="menu"
+            aria-orientation="vertical"
+          >
+            {menuItems.map(({ key, icon: Icon, label, onClick, className }) => (
+              <button
+                key={key}
+                onClick={onClick}
+                className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-2 cursor-pointer transition-colors duration-200 ${className}`}
+                role="menuitem"
+              >
+                <Icon size={14} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6 transition-colors duration-300">
@@ -208,7 +295,7 @@ export function BoardDashboard({
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ y: -4 }}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all duration-300 cursor-pointer group relative overflow-hidden ${
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all duration-300 cursor-pointer group relative overflow-visible z-auto ${
                   viewMode === 'list' ? 'p-4' : 'p-6'
                 }`}
                 onClick={() => onBoardSelect(board)}
@@ -230,44 +317,7 @@ export function BoardDashboard({
                       </div>
                       
                       {hasPermission(board.id, 'manage_board') && (
-                        <div className="relative">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveDropdown(activeDropdown === board.id ? null : board.id);
-                            }}
-                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                          
-                          {activeDropdown === board.id && (
-                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-10 min-w-[120px]">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleBoardAction('edit', board);
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center space-x-2"
-                              >
-                                <Edit2 size={14} />
-                                <span>{t('board.edit')}</span>
-                              </button>
-                              {board.createdBy === currentUser.id && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleBoardAction('delete', board);
-                                  }}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-600 text-red-600 flex items-center space-x-2"
-                                >
-                                  <Trash2 size={14} />
-                                  <span>{t('board.delete')}</span>
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        <BoardDropdown board={board} />
                       )}
                     </div>
 
@@ -332,43 +382,8 @@ export function BoardDashboard({
                       </div>
                       
                       {hasPermission(board.id, 'manage_board') && (
-                        <div className="relative ml-4">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveDropdown(activeDropdown === board.id ? null : board.id);
-                            }}
-                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                          
-                          {activeDropdown === board.id && (
-                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-10 min-w-[120px]">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleBoardAction('edit', board);
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center space-x-2"
-                              >
-                                <Edit2 size={14} />
-                                <span>{t('board.edit')}</span>
-                              </button>
-                              {board.createdBy === currentUser.id && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleBoardAction('delete', board);
-                                  }}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-600 text-red-600 flex items-center space-x-2"
-                                >
-                                  <Trash2 size={14} />
-                                  <span>{t('board.delete')}</span>
-                                </button>
-                              )}
-                            </div>
-                          )}
+                        <div className="ml-4">
+                          <BoardDropdown board={board} />
                         </div>
                       )}
                     </div>
@@ -383,8 +398,21 @@ export function BoardDashboard({
       {/* Click outside to close dropdown */}
       {activeDropdown && (
         <div
-          className="fixed inset-0 z-5"
+          className="fixed inset-0 z-40"
           onClick={() => setActiveDropdown(null)}
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
+
+      {/* Board Settings Modal */}
+      {showBoardSettings && selectedBoardForSettings && (
+        <BoardSettings
+          boardId={selectedBoardForSettings.id}
+          isOwner={getUserRole(selectedBoardForSettings) === 'owner'}
+          onClose={() => {
+            setShowBoardSettings(false);
+            setSelectedBoardForSettings(null);
+          }}
         />
       )}
     </div>

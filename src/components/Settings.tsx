@@ -1,11 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, FileText, Save, X, Download, Eye, EyeOff } from 'lucide-react';
+import { Upload, FileText, X, Eye, EyeOff, Save, Loader2, Download } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { User as UserType } from '../types';
 
 interface SettingsProps {
-  user: UserType;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
 }
 
 interface ResumeData {
@@ -13,25 +17,73 @@ interface ResumeData {
   text: string;
   fileName?: string;
   uploadDate?: string;
+  fileUrl?: string;
 }
 
-export function Settings({ user }: SettingsProps) {
+export const Settings: React.FC<SettingsProps> = ({ user: _user }) => {
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Load existing resume data from localStorage
-  const [resumeData, setResumeData] = useState<ResumeData>(() => {
-    const saved = localStorage.getItem(`resume_${user.id}`);
-    return saved ? JSON.parse(saved) : { text: '' };
+  // Load existing resume data from backend
+  const [resumeData, setResumeData] = useState<ResumeData>({
+    file: undefined,
+    text: '',
   });
-  
-  const [isEditing, setIsEditing] = useState(false);
+  const [skills, setSkills] = useState('');
+  const [experience, setExperience] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  const handleFileUpload = (file: File) => {
-    if (file.type !== 'application/pdf' && !file.type.startsWith('image/') && file.type !== 'text/plain' && !file.type.includes('document')) {
-      alert(t('settings.invalidFileType') || 'Please upload a PDF, image, text file, or document');
+  // Load profile data from backend on component mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        const tokenRaw = localStorage.getItem('kanban-token');
+        const token = tokenRaw ? JSON.parse(tokenRaw) : null;
+        
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+        
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const fileUrl: string | undefined = data.resume_file || undefined;
+          const fileName: string | undefined = fileUrl ? (fileUrl.split('/')?.pop() || undefined) : undefined;
+          setResumeData(prev => ({ ...prev, text: data.resume || '', fileName, fileUrl }));
+          setSkills(data.skills || '');
+          setExperience(data.experience || '');
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProfile();
+  }, []);
+
+  const handleFileUpload = async (file: File) => {
+    const allowedTypes = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ]);
+    if (!allowedTypes.has(file.type)) {
+      alert(t('settings.invalidFileType') || 'Please upload a PDF, DOC, DOCX, or TXT file');
       return;
     }
 
@@ -40,15 +92,51 @@ export function Settings({ user }: SettingsProps) {
       return;
     }
 
-    const newResumeData = {
-      ...resumeData,
-      file,
-      fileName: file.name,
-      uploadDate: new Date().toISOString()
-    };
-    
-    setResumeData(newResumeData);
-    saveResumeData(newResumeData);
+    try {
+      setSaveStatus('saving');
+      const tokenRaw = localStorage.getItem('kanban-token');
+      const token = tokenRaw ? JSON.parse(tokenRaw) : null;
+      
+      if (!token) {
+        setSaveStatus('error');
+        alert('Please log in to upload files');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('resume', file);
+      
+      const response = await fetch('/api/profile/upload-resume', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const newResumeData = {
+          ...resumeData,
+          file,
+          fileName: file.name,
+          uploadDate: new Date().toISOString(),
+          fileUrl: data.url as string,
+        };
+        setResumeData(newResumeData);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+        alert(t('settings.resumeSaved') || 'Resume file uploaded successfully!');
+      } else {
+        const error = await response.json();
+        setSaveStatus('error');
+        alert(error.error || 'Failed to upload file');
+      }
+    } catch (error) {
+      setSaveStatus('error');
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file');
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -83,35 +171,96 @@ export function Settings({ user }: SettingsProps) {
     setResumeData(newResumeData);
   };
 
-  const saveResumeData = (data: ResumeData) => {
-    // Save to localStorage (in a real app, this would be sent to the backend)
-    const dataToSave = {
-      text: data.text,
-      fileName: data.fileName,
-      uploadDate: data.uploadDate
-    };
-    localStorage.setItem(`resume_${user.id}`, JSON.stringify(dataToSave));
+  const saveResumeData = async (data: ResumeData) => {
+    try {
+      setSaveStatus('saving');
+      const tokenRaw = localStorage.getItem('kanban-token');
+      const token = tokenRaw ? JSON.parse(tokenRaw) : null;
+      
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          resume: data.text,
+          skills: skills,
+          experience: experience,
+        }),
+      });
+      
+      if (response.ok) {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else {
+        setSaveStatus('error');
+        console.error('Failed to save profile');
+      }
+    } catch (error) {
+      setSaveStatus('error');
+      console.error('Error saving profile:', error);
+    }
   };
 
-  const handleSave = () => {
-    saveResumeData(resumeData);
+  const handleSave = async () => {
+    await saveResumeData(resumeData);
     setIsEditing(false);
-    // In a real app, you would send this to your backend API
-    alert(t('settings.resumeSaved') || 'Resume saved successfully!');
   };
 
-  const handleRemoveFile = () => {
-    const newResumeData = {
-      ...resumeData,
-      file: undefined,
-      fileName: undefined,
-      uploadDate: undefined
-    };
-    setResumeData(newResumeData);
-    saveResumeData(newResumeData);
+  const handleRemoveFile = async () => {
+    try {
+      setSaveStatus('saving');
+      const tokenRaw = localStorage.getItem('kanban-token');
+      const token = tokenRaw ? JSON.parse(tokenRaw) : null;
+
+      if (!token) {
+        setSaveStatus('error');
+        alert('Please log in to remove files');
+        return;
+      }
+
+      const resp = await fetch('/api/profile/resume', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({} as any));
+        setSaveStatus('error');
+        alert(err.error || 'Failed to delete resume');
+        return;
+      }
+
+      const newResumeData = {
+        ...resumeData,
+        file: undefined,
+        fileName: undefined,
+        uploadDate: undefined,
+        fileUrl: undefined,
+      };
+      setResumeData(newResumeData);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 1500);
+    } catch (e) {
+      console.error('Error deleting resume:', e);
+      setSaveStatus('error');
+      alert('Failed to delete resume');
+    }
   };
 
   const downloadResume = () => {
+    if (resumeData.fileUrl) {
+      const a = document.createElement('a');
+      a.href = resumeData.fileUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.download = resumeData.fileName || 'resume';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
     if (resumeData.file) {
       const url = URL.createObjectURL(resumeData.file);
       const a = document.createElement('a');
@@ -121,7 +270,9 @@ export function Settings({ user }: SettingsProps) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      return;
     }
+    alert('No resume file available to download');
   };
 
   return (
@@ -140,7 +291,18 @@ export function Settings({ user }: SettingsProps) {
         </p>
       </motion.div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+          <span className="ml-2 text-slate-600 dark:text-slate-400">
+            {t('settings.loading') || 'Loading profile...'}
+          </span>
+        </div>
+      )}
+      
       {/* Resume Section */}
+      {!loading && (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -233,7 +395,7 @@ export function Settings({ user }: SettingsProps) {
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {t('settings.supportedFormats') || 'Supported formats: PDF, DOC, DOCX, TXT, Images (Max 5MB)'}
+                    {t('settings.supportedFormats') || 'Supported formats: PDF, DOC, DOCX, TXT (Max 5MB)'}
                   </p>
                 </div>
               )}
@@ -242,7 +404,7 @@ export function Settings({ user }: SettingsProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+              accept=".pdf,.doc,.docx,.txt"
               onChange={handleFileInputChange}
               className="hidden"
             />
@@ -279,10 +441,20 @@ export function Settings({ user }: SettingsProps) {
                   </button>
                   <button
                     onClick={handleSave}
-                    className="flex items-center space-x-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors"
+                    disabled={saveStatus === 'saving'}
+                    className="flex items-center space-x-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                   >
-                    <Save className="w-4 h-4" />
-                    <span>{t('settings.save') || 'Save'}</span>
+                    {saveStatus === 'saving' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    <span>
+                      {saveStatus === 'saving' ? (t('settings.saving') || 'Saving...') : 
+                       saveStatus === 'saved' ? (t('settings.resumeSaved') || 'Saved!') :
+                       saveStatus === 'error' ? (t('settings.saveError') || 'Error') :
+                       (t('settings.save') || 'Save')}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -336,6 +508,7 @@ export function Settings({ user }: SettingsProps) {
           </motion.div>
         )}
       </motion.div>
+      )}
     </div>
   );
 }

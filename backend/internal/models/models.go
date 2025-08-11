@@ -61,12 +61,34 @@ type MemberPermission struct {
 	Member BoardMember `json:"member" gorm:"foreignKey:MemberID"`
 }
 
+type MemberProfile struct {
+	ID           uint      `json:"id" gorm:"primaryKey"`
+	UserID       uint      `json:"user_id" gorm:"not null;unique"`
+	ResumeText   string    `json:"resume" gorm:"column:resume_text;type:text"`
+	ResumeFile   string    `json:"resume_file" gorm:"column:resume_file;type:text"`
+	Skills       string    `json:"skills" gorm:"type:text"`
+	Capabilities string    `json:"experience" gorm:"column:capabilities;type:text"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	User         User      `json:"user" gorm:"foreignKey:UserID"`
+}
+
+func (MemberProfile) TableName() string {
+	return "user_profiles"
+}
+
 type BoardSettings struct {
 	ID                           uint `json:"id" gorm:"primaryKey"`
 	BoardID                      uint `json:"board_id" gorm:"not null;unique"`
 	AllowGuestAccess             bool `json:"allow_guest_access" gorm:"default:false"`
 	RequireApprovalForNewMembers bool `json:"require_approval_for_new_members" gorm:"default:false"`
 	DefaultMemberRole            string `json:"default_member_role" gorm:"default:'member'"`
+	
+	// LLM Configuration
+	LLMProvider  string `json:"llm_provider"`  // openai or openrouter
+	LLMAPIKey    string `json:"llm_api_key"`
+	LLMModel     string `json:"llm_model"`
+	LLMEnabled   bool   `json:"llm_enabled" gorm:"default:false"`
 
 	// Relationships
 	Board *Board `json:"-" gorm:"foreignKey:BoardID"`
