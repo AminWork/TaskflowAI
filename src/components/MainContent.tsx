@@ -8,10 +8,11 @@ import { AddColumnCard } from './AddColumnCard';
 import { AnalyticsPage } from './AnalyticsPage';
 import { MemberManagement } from './MemberManagement';
 import CalendarPage from './CalendarPage';
+import { ChatPage } from './ChatPage';
 
 
 interface MainContentProps {
-  currentView: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar';
+  currentView: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'chat';
   currentBoard: KanbanBoard | null;
   boards: KanbanBoard[];
   onSelectBoard: (board: KanbanBoard) => void;
@@ -172,6 +173,22 @@ export const MainContent: React.FC<MainContentProps> = ({
           transition={{ duration: 0.3 }}
         >
           <CalendarPage />
+        </motion.div>
+      )}
+
+      {currentView === 'chat' && currentBoard && (
+        <motion.div
+          key="chat"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="h-full"
+        >
+          <ChatPage
+            board={currentBoard}
+            currentUser={user}
+          />
         </motion.div>
       )}
     </AnimatePresence>

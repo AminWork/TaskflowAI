@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Smile, Paperclip, Users, Search, X, MoreVertical, Trash2, MessageCircle } from 'lucide-react';
+import { Send, Smile, Paperclip, Users, Search, X, MessageCircle } from 'lucide-react';
 import { ChatMessage, ChatMember, KanbanBoard, User } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { MessageBubble } from './MessageBubble';
@@ -20,25 +20,22 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [members, setMembers] = useState<ChatMember[]>([]);
+  
+  // Convert user ID to string for compatibility
+  const currentUserId = String(currentUser.id);
   const [showMembers, setShowMembers] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load messages and members when component opens, and poll for member status
   useEffect(() => {
     if (isOpen && board) {
       loadMessages();
@@ -92,6 +89,19 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
 
   const sendMessage = async () => {
     if ((!newMessage.trim() && !selectedFile) || isLoading) return;
+
+      // Message data will be sent via formData
+    
+    const formData = new FormData();
+    formData.append('boardId', board.id);
+    formData.append('userId', currentUserId);
+    formData.append('content', newMessage);
+    formData.append('sender', 'user');
+    formData.append('userName', currentUser.name);
+    
+    if (selectedFile) {
+      formData.append('file', selectedFile);
+    }
 
     setIsLoading(true);
     try {
@@ -157,7 +167,7 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
 
   // Helper function to check if a user is online
   const isUserOnline = (userId: string) => {
-    if (userId === currentUser.id) {
+    if (String(userId) === String(currentUser.id)) {
       return true; // Always show self as online
     }
     const member = members.find(m => m.userId === userId);
@@ -186,7 +196,7 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      sendMessage().catch(console.error);
     }
   };
 
@@ -344,22 +354,7 @@ export function ChatWindow({ board, currentUser, isOpen, onClose }: ChatWindowPr
           </>
         )}
         
-        {isTyping && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center space-x-3 rtl:space-x-reverse"
-          >
-            <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-            </div>
-            <span className="text-sm">{t('chat.typing')}</span>
-          </motion.div>
-        )}
+        {/* Typing indicator removed to simplify the component */}
       </div>
 
       {/* Input */}

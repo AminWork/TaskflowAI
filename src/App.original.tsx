@@ -17,14 +17,13 @@ import { useAllBoardTasks } from './hooks/useAllBoardTasks';
 import { useBoards } from './hooks/useBoards';
 import { useTasks } from './hooks/useTasks';
 import { useColumns } from './hooks/useColumns';
-import { ChatPage } from './components/ChatPage';
+import { ChatWindow } from './components/Chat/ChatWindow';
 import { ConversationsList } from './components/PrivateMessages/ConversationsList';
 import { MainContent } from './components/MainContent';
 import { Settings } from './components/Settings';
 import { migrateLocalStorageKeys } from './utils/migrateLocalStorage';
 import { useWebSocket } from './hooks/useWebSocket';
-import { Mail } from 'lucide-react';
-import { ViewType } from './components/Navigation';
+import { MessageCircle, Mail } from 'lucide-react';
 
 function App() {
   // Run localStorage migration on app start
@@ -34,6 +33,8 @@ function App() {
 
   const { t, isRTL, language } = useLanguage();
   const { unreadMessages, requestNotificationPermission } = useNotifications();
+
+
 
   const { user, token, isLoading, login, register, logout, isAuthenticated } = useAuth();
   
@@ -69,7 +70,7 @@ function App() {
     deleteTask,
     moveTask,
   } = useTasks(currentBoard?.id || null, token);
-
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'settings'>('dashboard');
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isBoardFormOpen, setIsBoardFormOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<KanbanBoard | undefined>();
@@ -77,8 +78,7 @@ function App() {
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [defaultStatus, setDefaultStatus] = useState<Task['status']>('todo');
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
-  // Chat is now controlled by the view state
-  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPrivateMessagesOpen, setIsPrivateMessagesOpen] = useState(false);
 
   // General tasks across all boards
@@ -195,7 +195,7 @@ function App() {
     setCurrentView('kanban');
   };
 
-  const handleViewChange = (view: ViewType) => {
+  const handleViewChange = (view: 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'settings') => {
     setCurrentView(view);
   };
 
@@ -324,7 +324,18 @@ function App() {
                 )}
               </motion.button>
 
-              {/* Chat functionality moved to sidebar */}
+              {/* Chat Toggle Button */}
+              <motion.button
+                key={`chat-button-${language}`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsChatOpen(!isChatOpen)}
+                className={`fixed ${isRTL ? 'left-6' : 'right-6'} bottom-6 p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40 ${!currentBoard ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={t('chat.title')}
+                disabled={!currentBoard}
+              >
+                <MessageCircle size={24} />
+              </motion.button>
 
               {/* Private Messages */}
               <AnimatePresence>
@@ -344,14 +355,24 @@ function App() {
                 )}
               </AnimatePresence>
 
-
+              {/* Chat Window */}
+              <AnimatePresence>
+                {isChatOpen && currentBoard && user && (
+                  <ChatWindow
+                    board={currentBoard}
+                    currentUser={user}
+                    isOpen={isChatOpen}
+                    onClose={() => setIsChatOpen(false)}
+                  />
+                )}
+              </AnimatePresence>
 
       <div className="container mx-auto px-4 py-8">
         {currentView === 'settings' ? (
           <Settings user={user!} />
         ) : currentBoard ? (
             <MainContent
-                currentView={currentView as 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar' | 'chat'}
+                currentView={currentView as 'dashboard' | 'kanban' | 'analytics' | 'members' | 'calendar'}
                 currentBoard={currentBoard}
                 boards={boards}
                 onSelectBoard={handleSelectBoard}

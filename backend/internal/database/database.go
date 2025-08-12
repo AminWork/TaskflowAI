@@ -43,7 +43,8 @@ func InitDatabase() {
 		logger.Log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Auto-migrate the schema
+	// Auto-migrate the schema in dependency order
+	// First migrate base models
 	err = DB.AutoMigrate(
 		&models.User{},
 		&models.Board{},
@@ -57,6 +58,38 @@ func InitDatabase() {
 		&models.ChatMessage{},
 		&models.PrivateMessage{},
 		&models.Appointment{},
+	)
+	if err != nil {
+		logger.Log.Fatalf("Failed to migrate base models: %v", err)
+	}
+
+	// Then migrate RocketChat models in dependency order
+	// 1. Users first (no dependencies)
+	err = DB.AutoMigrate(&models.RocketChatUser{})
+	if err != nil {
+		logger.Log.Fatalf("Failed to migrate RocketChatUser: %v", err)
+	}
+
+	// 2. Rooms (no dependencies)
+	err = DB.AutoMigrate(&models.RocketChatRoom{})
+	if err != nil {
+		logger.Log.Fatalf("Failed to migrate RocketChatRoom: %v", err)
+	}
+
+	// 3. Settings and Integrations (no dependencies)
+	err = DB.AutoMigrate(
+		&models.RocketChatSettings{},
+		&models.RocketChatIntegration{},
+	)
+	if err != nil {
+		logger.Log.Fatalf("Failed to migrate RocketChat settings: %v", err)
+	}
+
+	// 4. Models that depend on Users and Rooms
+	err = DB.AutoMigrate(
+		&models.RocketChatMessage{},
+		&models.RocketChatSubscription{},
+		&models.RocketChatPresence{},
 	)
 	if err != nil {
 		logger.Log.Fatalf("Failed to migrate database: %v", err)

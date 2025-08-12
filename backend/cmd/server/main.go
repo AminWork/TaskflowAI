@@ -28,9 +28,13 @@ func main() {
 	// Initialize database
 	database.InitDatabase()
 
-	// Initialize WebSocket hub
+	// Initialize WebSocket hubs
 	hub := websocket.NewHub()
 	go hub.Run()
+	
+	// Initialize RocketChat WebSocket hub
+	rocketChatHub := websocket.NewRocketChatHub(database.GetDB())
+	go rocketChatHub.Run()
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler()
@@ -39,6 +43,12 @@ func main() {
     columnHandler := handlers.NewColumnHandler()
 	chatHandler := handlers.NewChatHandler(hub)
 	privateMessageHandler := handlers.NewPrivateMessageHandler(hub)
+	rocketChatHandler := handlers.NewRocketChatHandler(database.GetDB())
+	
+	// Initialize RocketChat defaults
+	if err := rocketChatHandler.InitializeDefaults(); err != nil {
+		logger.Log.Error("Failed to initialize RocketChat defaults", err)
+	}
 
 	// Setup router with custom configuration
 	router := gin.New()
@@ -205,6 +215,43 @@ func main() {
 
 				c.JSON(http.StatusOK, gin.H{"message": "Typing notification sent"})
 			})
+		}
+		
+		// RocketChat API routes (exact compatibility)
+		rocketChat := api.Group("/v1")
+		{
+			// Authentication
+			rocketChat.POST("/login", rocketChatHandler.Login)
+			rocketChat.POST("/users.register", rocketChatHandler.Register)
+			
+			// Protected RocketChat routes
+			rcProtected := rocketChat.Group("/")
+			rcProtected.Use(middleware.AuthMiddleware())
+			{
+				// Rooms
+				rcProtected.GET("/rooms.get", rocketChatHandler.GetRooms)
+				rcProtected.POST("/rooms.create", rocketChatHandler.CreateRoom)
+				rcProtected.POST("/rooms.join", rocketChatHandler.JoinRoom)
+				rcProtected.POST("/rooms.leave", rocketChatHandler.LeaveRoom)
+				
+				// Subscriptions
+				rcProtected.GET("/subscriptions.get", rocketChatHandler.GetSubscriptions)
+				
+				// Messages
+				rcProtected.POST("/chat.sendMessage", rocketChatHandler.SendMessage)
+				rcProtected.GET("/channels.history/:roomId", rocketChatHandler.GetMessages)
+				rcProtected.GET("/groups.history/:roomId", rocketChatHandler.GetMessages)
+				rcProtected.GET("/im.history/:roomId", rocketChatHandler.GetMessages)
+				
+				// Users
+				rcProtected.GET("/users.list", rocketChatHandler.GetUsers)
+				rcProtected.POST("/users.setStatus", rocketChatHandler.UpdateUserStatus)
+				
+				// WebSocket for RocketChat
+				rcProtected.GET("/websocket", func(c *gin.Context) {
+					rocketChatHub.HandleWebSocket(c)
+				})
+			}
 		}
 	}
 
